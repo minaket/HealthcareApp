@@ -95,4 +95,12 @@ export const clearApi = () => {
   api = null;
 };
 
-export default api; 
+// Initialize the default export
+const initializeApi = async () => {
+  if (!api) {
+    api = await getApi();
+  }
+  return api;
+};
+
+export default initializeApi; 

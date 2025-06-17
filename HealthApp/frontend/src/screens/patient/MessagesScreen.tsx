@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Image,
+  Alert,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../hooks/useAuth';
@@ -29,68 +30,106 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
+    try {
+      await refetch();
+    } catch (err) {
+      console.error('Error refreshing messages:', err);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  const renderConversationItem = ({ item }: { item: any }) => {
-    const isDoctor = item.participant.role === 'doctor';
-    const displayName = isDoctor 
-      ? `Dr. ${item.participant.firstName} ${item.participant.lastName}`
-      : `${item.participant.firstName} ${item.participant.lastName}`;
+  const handleConversationPress = (conversation: any) => {
+    try {
+      navigation.navigate(ROUTES.PATIENT.CHAT, { 
+        recipientId: conversation.participant.id 
+      });
+    } catch (err) {
+      console.error('Navigation error:', err);
+      Alert.alert('Error', 'Unable to open chat. Please try again.');
+    }
+  };
 
-    return (
+  const renderConversation = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={[styles.conversationCard, { backgroundColor: theme.colors.card }]}
+      onPress={() => handleConversationPress(item)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.avatarContainer}>
+        {item.participant.avatar ? (
+          <Image
+            source={{ uri: item.participant.avatar }}
+            style={styles.avatar}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.avatar, styles.defaultAvatar, { backgroundColor: theme.colors.border }]}>
+            <Ionicons name="person" size={24} color={theme.colors.text} />
+          </View>
+        )}
+        {item.unreadCount > 0 && (
+          <View style={[styles.unreadBadge, { backgroundColor: theme.colors.primary }]}>
+            <Text style={styles.unreadBadgeText}>
+              {item.unreadCount > 99 ? '99+' : item.unreadCount}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.conversationContent}>
+        <View style={styles.conversationHeader}>
+          <Text style={[styles.name, { color: theme.colors.text }]}>
+            {item.participant.name || 'Unknown User'}
+          </Text>
+          <Text style={[styles.time, { color: theme.colors.textSecondary }]}>
+            {item.lastMessage?.createdAt 
+              ? format(new Date(item.lastMessage.createdAt), 'MMM dd, HH:mm')
+              : ''
+            }
+          </Text>
+        </View>
+        
+        <Text 
+          style={[
+            styles.messagePreview, 
+            { color: theme.colors.textSecondary },
+            item.unreadCount > 0 && { fontWeight: '600', color: theme.colors.text }
+          ]}
+          numberOfLines={2}
+        >
+          {item.lastMessage?.content || 'No messages yet'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="chatbubbles-outline" size={64} color={theme.colors.textSecondary} />
+      <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+        No conversations yet
+      </Text>
+      <Text style={[styles.emptySubtext, { color: theme.colors.textSecondary }]}>
+        Start a conversation with your doctor
+      </Text>
+    </View>
+  );
+
+  const renderErrorState = () => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="alert-circle-outline" size={64} color={theme.colors.error} />
+      <Text style={[styles.errorText, { color: theme.colors.error }]}>
+        {error || 'Failed to load messages'}
+      </Text>
       <TouchableOpacity
-        style={[styles.conversationCard, { backgroundColor: theme.colors.card }]}
-        onPress={() => navigation.navigate(ROUTES.PATIENT.CHAT, { recipientId: item.participant.id })}
+        style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
+        onPress={onRefresh}
       >
-        <View style={styles.avatarContainer}>
-          {item.participant.avatar ? (
-            <Image
-              source={{ uri: item.participant.avatar }}
-              style={styles.avatar}
-            />
-          ) : (
-            <View style={[styles.avatar, styles.defaultAvatar, { backgroundColor: theme.colors.primary }]}>
-              <Ionicons name="person" size={24} color="#fff" />
-            </View>
-          )}
-          {item.unreadCount > 0 && (
-            <View style={[styles.unreadBadge, { backgroundColor: theme.colors.primary }]}>
-              <Text style={styles.unreadCount}>{item.unreadCount}</Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.conversationContent}>
-          <View style={styles.conversationHeader}>
-            <Text style={[styles.name, { color: theme.colors.text }]}>
-              {displayName}
-            </Text>
-            <Text style={[styles.time, { color: theme.colors.secondary }]}>
-              {format(new Date(item.lastMessage.timestamp), 'HH:mm')}
-            </Text>
-          </View>
-
-          <View style={styles.messagePreview}>
-            <Text 
-              style={[
-                styles.lastMessage,
-                { 
-                  color: item.unreadCount > 0 
-                    ? theme.colors.text 
-                    : theme.colors.secondary 
-                }
-              ]}
-              numberOfLines={1}
-            >
-              {item.lastMessage.content}
-            </Text>
-          </View>
-        </View>
+        <Text style={styles.retryButtonText}>Retry</Text>
       </TouchableOpacity>
-    );
-  };
+    </View>
+  );
 
   if (loading && !refreshing) {
     return (
@@ -100,48 +139,28 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
-  if (error) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.errorText, { color: theme.colors.error }]}>
-          Error loading messages. Please try again.
-        </Text>
-        <TouchableOpacity
-          style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
-          onPress={refetch}
-        >
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <FlatList
-        data={conversations}
-        renderItem={renderConversationItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[theme.colors.primary]}
-            tintColor={theme.colors.primary}
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.colors.text }]}>
-              No messages yet
-            </Text>
-            <Text style={[styles.emptySubtext, { color: theme.colors.secondary }]}>
-              Your conversations with healthcare providers will appear here
-            </Text>
-          </View>
-        }
-      />
+      {error && !refreshing ? (
+        renderErrorState()
+      ) : (
+        <FlatList
+          data={conversations || []}
+          renderItem={renderConversation}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+              tintColor={theme.colors.primary}
+            />
+          }
+          ListEmptyComponent={renderEmptyState}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 };
@@ -176,7 +195,6 @@ const styles = StyleSheet.create({
   defaultAvatar: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ccc',
   },
   unreadBadge: {
     position: 'absolute',
@@ -187,16 +205,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
   },
-  unreadCount: {
+  unreadBadgeText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
   },
   conversationContent: {
     flex: 1,
-    justifyContent: 'center',
   },
   conversationHeader: {
     flexDirection: 'row',
@@ -212,12 +228,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   messagePreview: {
-    flex: 1,
-  },
-  lastMessage: {
     fontSize: 14,
+    lineHeight: 20,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    textAlign: 'center',
   },
   errorText: {
+    fontSize: 16,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -230,22 +262,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    textAlign: 'center',
   },
 });
 

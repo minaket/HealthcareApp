@@ -94,6 +94,7 @@ const getConversations = async (req, res) => {
             id: doctorUser?.id,
             firstName: doctorUser?.firstName,
             lastName: doctorUser?.lastName,
+            name: doctorUser ? `${doctorUser.firstName || ''} ${doctorUser.lastName || ''}`.trim() : 'Unknown Doctor',
             role: doctorUser?.role,
             specialization: conv.Doctor?.specialization
           }
@@ -101,6 +102,7 @@ const getConversations = async (req, res) => {
             id: patientUser?.id,
             firstName: patientUser?.firstName,
             lastName: patientUser?.lastName,
+            name: patientUser ? `${patientUser.firstName || ''} ${patientUser.lastName || ''}`.trim() : 'Unknown Patient',
             role: patientUser?.role
           };
 
@@ -140,10 +142,7 @@ const getConversations = async (req, res) => {
     });
 
     console.log('Sending response with conversations:', formattedConversations.length);
-    res.json({
-      conversations: formattedConversations,
-      total: formattedConversations.length
-    });
+    res.json(formattedConversations);
   } catch (error) {
     console.error('Get conversations error:', error);
     res.status(500).json({
@@ -354,6 +353,7 @@ const getOrCreateConversation = async (req, res) => {
         id: doctor.User.id,
         firstName: doctor.User.firstName,
         lastName: doctor.User.lastName,
+        name: doctor.User.firstName ? `${doctor.User.firstName} ${doctor.User.lastName || ''}`.trim() : 'Unknown Doctor',
         role: doctor.User.role,
         avatar: doctor.User.avatar,
         specialization: doctor.specialization

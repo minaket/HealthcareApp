@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import api from '../api/axios.config';
+import initializeApi from '../api/axios.config';
 import { API_ENDPOINTS } from '../config/constants';
 
 interface Message {
@@ -18,12 +18,13 @@ interface Participant {
   lastName: string;
   role: 'patient' | 'doctor' | 'admin';
   avatar?: string;
+  name?: string;
 }
 
 interface Conversation {
   id: string;
   participant: Participant;
-  lastMessage: Message;
+  lastMessage?: Message;
   unreadCount: number;
   updatedAt: string;
 }
@@ -38,9 +39,11 @@ export const useMessages = () => {
     try {
       setLoading(true);
       setError(null);
+      const api = await initializeApi();
       const response = await api.get(API_ENDPOINTS.MESSAGES.CONVERSATIONS);
       setConversations(response.data);
     } catch (err) {
+      console.error('Error fetching conversations:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch conversations'));
     } finally {
       setLoading(false);
@@ -49,6 +52,7 @@ export const useMessages = () => {
 
   const sendMessage = useCallback(async (recipientId: string, content: string) => {
     try {
+      const api = await initializeApi();
       const response = await api.post(API_ENDPOINTS.MESSAGES.BASE, {
         recipientId,
         content,
@@ -61,6 +65,7 @@ export const useMessages = () => {
 
   const markAsRead = useCallback(async (conversationId: string) => {
     try {
+      const api = await initializeApi();
       await api.put(`${API_ENDPOINTS.MESSAGES.BASE}/conversations/${conversationId}/read`);
       setConversations(prev =>
         prev.map(conv =>
@@ -85,59 +90,12 @@ export const useMessages = () => {
   useEffect(() => {
     if (!user) return;
 
-    const ws = new WebSocket(`${process.env.REACT_APP_WS_URL}/messages`);
-
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      ws.send(JSON.stringify({ type: 'auth', token: user.token }));
-    };
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'message') {
-        setConversations(prev => {
-          const conversationIndex = prev.findIndex(
-            conv => conv.participant.id === data.senderId
-          );
-
-          if (conversationIndex === -1) {
-            // New conversation
-            return [{
-              id: data.conversationId,
-              participant: data.sender,
-              lastMessage: data.message,
-              unreadCount: 1,
-              updatedAt: data.message.timestamp,
-            }, ...prev];
-          }
-
-          // Update existing conversation
-          const updatedConversations = [...prev];
-          updatedConversations[conversationIndex] = {
-            ...updatedConversations[conversationIndex],
-            lastMessage: data.message,
-            unreadCount: updatedConversations[conversationIndex].unreadCount + 1,
-            updatedAt: data.message.timestamp,
-          };
-
-          // Move conversation to top
-          const [conversation] = updatedConversations.splice(conversationIndex, 1);
-          return [conversation, ...updatedConversations];
-        });
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-    };
+    // For now, we'll skip WebSocket implementation to avoid connection issues
+    // This can be implemented later when the backend supports WebSocket
+    console.log('WebSocket connection skipped for now');
 
     return () => {
-      ws.close();
+      // Cleanup if needed
     };
   }, [user]);
 
