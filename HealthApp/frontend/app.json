@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Healthcare App",
+    "slug": "healthcare-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.healthcare.app"
+    },
+    "android": {
+      "package": "com.healthcare.app"
+    }
+  }
+} 
