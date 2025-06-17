@@ -40,6 +40,11 @@ protectedRouter.get('/patient/appointments/upcoming',
   appointmentController.getUpcomingAppointments
 );
 
+protectedRouter.post('/patient/appointments',
+  security.authorize(['patient']),
+  appointmentController.createAppointment
+);
+
 protectedRouter.get('/patient/health-summary',
   security.authorize(['patient']),
   patientController.getHealthSummary

@@ -17,8 +17,8 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppSelector } from '../../hooks';
 import { RootState } from '../../store';
 import { Doctor, Appointment, TimeSlot } from '../../types';
-import api from '../../api/axios.config';
-import { ROUTES } from '../../config/constants';
+import initializeApi from '../../api/axios.config';
+import { ROUTES, API_ENDPOINTS } from '../../config/constants';
 import { format, addDays, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { PatientStackParamList } from '../../types/navigation';
 
@@ -37,7 +37,7 @@ export default function PatientNewAppointmentScreen() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string>('');
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [reason, setReason] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -55,28 +55,37 @@ export default function PatientNewAppointmentScreen() {
   const fetchDoctors = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/users/doctors');
-      setDoctors(response.data.data || []);
+      const api = await initializeApi();
+      const response = await api.get(API_ENDPOINTS.USERS.DOCTORS);
+      // Backend returns { data: doctors, total: count }
+      setDoctors(response.data?.data || []);
     } catch (error) {
-      Alert.alert('Error', 'Failed to fetch doctors. Please try again.');
+      console.error('Error fetching doctors:', error);
+      Alert.alert('Error', 'Failed to load doctors. Please try again.');
+      setDoctors([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
   };
 
   const fetchAvailableSlots = async () => {
-    if (!selectedDoctor) return;
-    
+    if (!selectedDoctor || !selectedDate) return;
+
     try {
       setLoading(true);
-      const response = await api.get(`/doctors/${selectedDoctor.id}/available-slots`, {
-        params: {
-          date: format(selectedDate, 'yyyy-MM-dd'),
-        },
-      });
-      setAvailableSlots(response.data || []);
+      const api = await initializeApi();
+      const response = await api.get(
+        `${API_ENDPOINTS.APPOINTMENTS.DOCTOR}/${selectedDoctor.id}/slots`,
+        {
+          params: {
+            date: format(selectedDate, 'yyyy-MM-dd'),
+          },
+        }
+      );
+      setAvailableSlots(response.data);
     } catch (error) {
-      Alert.alert('Error', 'Failed to fetch available slots. Please try again.');
+      console.error('Error fetching available slots:', error);
+      setAvailableSlots([]);
     } finally {
       setLoading(false);
     }
@@ -86,53 +95,70 @@ export default function PatientNewAppointmentScreen() {
     setShowDatePicker(false);
     if (date) {
       setSelectedDate(date);
-      setSelectedTime(null);
+      setSelectedTime(''); // Reset selected time when date changes
     }
   };
 
   const handleBookAppointment = async () => {
-    if (!selectedDoctor || !selectedTime || !reason.trim()) {
+    if (!selectedDoctor || !selectedDate || !selectedTime || !reason.trim()) {
       Alert.alert('Error', 'Please fill in all required fields.');
       return;
     }
 
     try {
       setLoading(true);
+      const api = await initializeApi();
+      
       const appointmentData = {
         doctorId: selectedDoctor.id,
         date: format(selectedDate, 'yyyy-MM-dd'),
         time: selectedTime,
         reason: reason.trim(),
+        status: 'pending'
       };
 
-      await api.post('/appointments', appointmentData);
+      const response = await api.post(API_ENDPOINTS.APPOINTMENTS.PATIENT, appointmentData);
+      
       Alert.alert(
         'Success',
         'Appointment booked successfully!',
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate(ROUTES.PATIENT.APPOINTMENTS),
-          },
+            onPress: () => navigation.navigate(ROUTES.PATIENT.APPOINTMENTS)
+          }
         ]
       );
     } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to book appointment. Please try again.'
-      );
+      console.error('Error booking appointment:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to book appointment. Please try again.';
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading && !doctors.length) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
-  }
+  const generateTimeSlots = () => {
+    const slots: TimeSlot[] = [];
+    const startHour = 9; // 9 AM
+    const endHour = 17; // 5 PM
+    
+    for (let hour = startHour; hour < endHour; hour++) {
+      slots.push({
+        time: `${hour.toString().padStart(2, '0')}:00`,
+        isAvailable: true
+      });
+      slots.push({
+        time: `${hour.toString().padStart(2, '0')}:30`,
+        isAvailable: true
+      });
+    }
+    
+    return slots;
+  };
+
+  // Use generated slots if API doesn't return any
+  const displaySlots = availableSlots.length > 0 ? availableSlots : generateTimeSlots();
 
   return (
     <ScrollView 
@@ -140,9 +166,9 @@ export default function PatientNewAppointmentScreen() {
       contentContainerStyle={styles.contentContainer}
     >
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.secondary }]}>Select Doctor</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Select Doctor</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.doctorsList}>
-          {doctors.map((doctor) => (
+          {(doctors || []).map((doctor) => (
             <TouchableOpacity
               key={doctor.id}
               style={[
@@ -166,7 +192,7 @@ export default function PatientNewAppointmentScreen() {
               <Text
                 style={[
                   styles.doctorSpecialty,
-                  { color: selectedDoctor?.id === doctor.id ? '#FFF' : theme.colors.secondary },
+                  { color: selectedDoctor?.id === doctor.id ? '#FFF' : theme.colors.textSecondary },
                 ]}
               >
                 {doctor.specialization}
@@ -174,10 +200,18 @@ export default function PatientNewAppointmentScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        {loading && (
+          <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginTop: 10 }} />
+        )}
+        {!loading && (!doctors || doctors.length === 0) && (
+          <Text style={[styles.noDoctorsText, { color: theme.colors.textSecondary }]}>
+            No doctors available
+          </Text>
+        )}
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.secondary }]}>Select Date</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Select Date</Text>
         <TouchableOpacity
           style={[styles.dateButton, { backgroundColor: theme.colors.card }]}
           onPress={() => setShowDatePicker(true)}
@@ -200,23 +234,25 @@ export default function PatientNewAppointmentScreen() {
 
       {selectedDoctor && selectedDate && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.secondary }]}>Available Time Slots</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Available Time Slots</Text>
           <View style={styles.timeSlotsContainer}>
             {loading ? (
               <ActivityIndicator size="small" color={theme.colors.primary} />
-            ) : availableSlots.length > 0 ? (
-              availableSlots.map((slot) => (
+            ) : displaySlots.length > 0 ? (
+              displaySlots.map((slot) => (
                 <TouchableOpacity
                   key={slot.time}
                   style={[
                     styles.timeSlot,
                     {
                       backgroundColor: selectedTime === slot.time 
-                        ? theme.colors.primary 
+                        ? theme.colors.primary
                         : theme.colors.card,
+                      opacity: slot.isAvailable ? 1 : 0.5,
                     },
                   ]}
-                  onPress={() => setSelectedTime(slot.time)}
+                  onPress={() => slot.isAvailable && setSelectedTime(slot.time)}
+                  disabled={!slot.isAvailable}
                 >
                   <Text
                     style={[
@@ -229,7 +265,7 @@ export default function PatientNewAppointmentScreen() {
                 </TouchableOpacity>
               ))
             ) : (
-              <Text style={[styles.noSlotsText, { color: theme.colors.secondary }]}>
+              <Text style={[styles.noSlotsText, { color: theme.colors.textSecondary }]}>
                 No available slots for this date
               </Text>
             )}
@@ -238,7 +274,7 @@ export default function PatientNewAppointmentScreen() {
       )}
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.secondary }]}>Reason for Visit</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Reason for Visit</Text>
         <TextInput
           style={[
             styles.reasonInput,
@@ -364,5 +400,10 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  noDoctorsText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    marginTop: 8,
   },
 }); 

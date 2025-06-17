@@ -331,10 +331,140 @@ const getAvailableSlots = async (req, res) => {
   }
 };
 
+// Create appointment
+const createAppointment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { doctorId, date, time, reason, status = 'pending' } = req.body;
+
+    // Validate required fields
+    if (!doctorId || !date || !time || !reason) {
+      return res.status(400).json({
+        message: 'Doctor ID, date, time, and reason are required',
+        code: 'VALIDATION_ERROR'
+      });
+    }
+
+    // Find the patient record
+    const patient = await Patient.findOne({
+      where: { userId },
+      attributes: ['id', 'userId']
+    });
+
+    if (!patient) {
+      return res.status(404).json({
+        message: 'Patient record not found',
+        code: 'NOT_FOUND'
+      });
+    }
+
+    // Check if doctor exists
+    const doctor = await Doctor.findOne({
+      where: { id: doctorId },
+      include: [{
+        model: User,
+        attributes: ['id', 'firstName', 'lastName']
+      }]
+    });
+
+    if (!doctor) {
+      return res.status(404).json({
+        message: 'Doctor not found',
+        code: 'NOT_FOUND'
+      });
+    }
+
+    // Combine date and time
+    const appointmentDateTime = new Date(`${date}T${time}:00`);
+
+    // Check if the appointment time is in the future
+    if (appointmentDateTime <= new Date()) {
+      return res.status(400).json({
+        message: 'Appointment time must be in the future',
+        code: 'VALIDATION_ERROR'
+      });
+    }
+
+    // Check for conflicting appointments
+    const conflictingAppointment = await Appointment.findOne({
+      where: {
+        doctorId,
+        date: appointmentDateTime,
+        status: ['scheduled', 'pending']
+      }
+    });
+
+    if (conflictingAppointment) {
+      return res.status(409).json({
+        message: 'This time slot is already booked',
+        code: 'CONFLICT'
+      });
+    }
+
+    // Create the appointment
+    const appointment = await Appointment.create({
+      patientId: patient.id,
+      doctorId,
+      date: appointmentDateTime,
+      reason,
+      status
+    });
+
+    // Fetch the created appointment with details
+    const appointmentWithDetails = await Appointment.findOne({
+      where: { id: appointment.id },
+      include: [
+        {
+          model: Doctor,
+          attributes: ['id', 'specialization'],
+          include: [{
+            model: User,
+            attributes: ['id', 'firstName', 'lastName']
+          }]
+        },
+        {
+          model: Patient,
+          attributes: ['id'],
+          include: [{
+            model: User,
+            attributes: ['id', 'firstName', 'lastName']
+          }]
+        }
+      ]
+    });
+
+    res.status(201).json({
+      message: 'Appointment created successfully',
+      appointment: {
+        id: appointmentWithDetails.id,
+        date: appointmentWithDetails.date,
+        reason: appointmentWithDetails.reason,
+        status: appointmentWithDetails.status,
+        doctor: appointmentWithDetails.Doctor ? {
+          id: appointmentWithDetails.Doctor.id,
+          name: `${appointmentWithDetails.Doctor.User.firstName} ${appointmentWithDetails.Doctor.User.lastName}`,
+          specialization: appointmentWithDetails.Doctor.specialization
+        } : null,
+        patient: appointmentWithDetails.Patient ? {
+          id: appointmentWithDetails.Patient.id,
+          name: `${appointmentWithDetails.Patient.User.firstName} ${appointmentWithDetails.Patient.User.lastName}`
+        } : null
+      }
+    });
+  } catch (error) {
+    console.error('Create appointment error:', error);
+    res.status(500).json({
+      message: 'Error creating appointment',
+      code: 'CREATE_ERROR'
+    });
+  }
+};
+
 module.exports = {
   getPatientAppointments,
   getUpcomingAppointments,
   scheduleAppointment,
   cancelAppointment,
-  getAvailableSlots
+  getAvailableSlots,
+  createAppointment
 }; 
