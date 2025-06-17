@@ -14,6 +14,7 @@ import AppointmentsScreen from '../screens/patient/AppointmentsScreen';
 import MedicalRecordsScreen from '../screens/patient/MedicalRecordsScreen';
 import MessagesScreen from '../screens/patient/MessagesScreen';
 import PatientNewAppointmentScreen from '../screens/patient/PatientNewAppointmentScreen';
+import UploadMedicalRecordScreen from '../screens/patient/UploadMedicalRecordScreen';
 
 const Stack = createNativeStackNavigator<PatientStackParamList>();
 const Tab = createBottomTabNavigator<PatientStackParamList>();
@@ -115,6 +116,13 @@ export const PatientStack = () => {
         component={PatientNewAppointmentScreen}
         options={{
           title: 'New Appointment',
+        }}
+      />
+      <Stack.Screen 
+        name="UploadMedicalRecord" 
+        component={UploadMedicalRecordScreen}
+        options={{
+          title: 'Upload Medical Record',
         }}
       />
     </Stack.Navigator>

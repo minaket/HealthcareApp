@@ -51,8 +51,13 @@ protectedRouter.get('/patient/health-summary',
 );
 
 protectedRouter.get('/patient/medical-records',
-  security.authorize(['patient']), 
+  security.authorize(['patient']),
   patientController.getMedicalRecords
+);
+
+protectedRouter.post('/patient/medical-records/upload',
+  security.authorize(['patient']),
+  patientController.uploadMedicalRecord
 );
 
 protectedRouter.get('/patient/profile', security.authorize(['patient']), patientController.getPatientProfile);

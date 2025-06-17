@@ -108,6 +108,11 @@ export default function MedicalRecordsScreen() {
     header: {
       marginBottom: theme.spacing.xl,
     },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
     title: {
       fontSize: 24,
       fontWeight: 'bold',
@@ -233,6 +238,15 @@ export default function MedicalRecordsScreen() {
       fontSize: 16,
       marginTop: theme.spacing.xl,
     },
+    uploadButton: {
+      padding: theme.spacing.md,
+      borderRadius: theme.borderRadius.md,
+    },
+    uploadButtonText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
   });
 
   if (isLoading) {
@@ -252,7 +266,15 @@ export default function MedicalRecordsScreen() {
       }
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Medical Records</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Medical Records</Text>
+          <TouchableOpacity
+            style={[styles.uploadButton, { backgroundColor: theme.colors.primary }]}
+            onPress={() => navigation.navigate('UploadMedicalRecord' as any)}
+          >
+            <Text style={styles.uploadButtonText}>Upload</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {error && <Text style={styles.errorText}>{error}</Text>}

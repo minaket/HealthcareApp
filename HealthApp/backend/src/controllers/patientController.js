@@ -1,5 +1,47 @@
 const { Patient, User, MedicalRecord, Appointment, Doctor, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, '../../uploads/medical-records');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'application/pdf',
+      'text/plain',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type'), false);
+    }
+  }
+});
 
 // Get patient health summary
 const getHealthSummary = async (req, res) => {
@@ -379,10 +421,98 @@ const updatePatientProfile = async (req, res) => {
   }
 };
 
+// Upload medical record
+const uploadMedicalRecord = async (req, res) => {
+  try {
+    // Use multer middleware to handle file uploads
+    upload.array('files', 10)(req, res, async function (err) {
+      if (err) {
+        console.error('File upload error:', err);
+        return res.status(400).json({
+          message: 'File upload failed',
+          error: err.message,
+          code: 'UPLOAD_ERROR'
+        });
+      }
+
+      const userId = req.user.id;
+      const { title, description, recordType, date } = req.body;
+      const files = req.files;
+
+      // Validate required fields
+      if (!title || !recordType || !date) {
+        return res.status(400).json({
+          message: 'Title, record type, and date are required',
+          code: 'VALIDATION_ERROR'
+        });
+      }
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({
+          message: 'At least one file is required',
+          code: 'VALIDATION_ERROR'
+        });
+      }
+
+      // Find the patient record
+      const patient = await Patient.findOne({
+        where: { userId },
+        attributes: ['id', 'userId']
+      });
+
+      if (!patient) {
+        return res.status(404).json({
+          message: 'Patient record not found',
+          code: 'NOT_FOUND'
+        });
+      }
+
+      // Prepare attachments data
+      const attachments = files.map(file => ({
+        type: file.mimetype.startsWith('image/') ? 'image' : 'document',
+        url: `/uploads/medical-records/${file.filename}`,
+        name: file.originalname,
+        uploadedAt: new Date()
+      }));
+
+      // Create medical record with attachments
+      const medicalRecord = await MedicalRecord.create({
+        patientId: patient.id,
+        title: title.trim(),
+        description: description ? description.trim() : null,
+        recordType: recordType.trim(),
+        date: new Date(date),
+        status: 'active',
+        attachments: JSON.stringify(attachments)
+      });
+
+      res.status(201).json({
+        message: 'Medical record uploaded successfully',
+        record: {
+          id: medicalRecord.id,
+          title: medicalRecord.title,
+          description: medicalRecord.description,
+          recordType: medicalRecord.recordType,
+          date: medicalRecord.date,
+          status: medicalRecord.status,
+          attachments: attachments
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Upload medical record error:', error);
+    res.status(500).json({
+      message: 'Error uploading medical record',
+      code: 'CREATE_ERROR'
+    });
+  }
+};
+
 module.exports = {
   getHealthSummary,
   getMedicalRecords,
   getDoctorPatients,
   updatePatientProfile,
   getPatientProfile,
+  uploadMedicalRecord,
 }; 

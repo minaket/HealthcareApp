@@ -24,6 +24,7 @@ export type PatientStackParamList = {
   [ROUTES.PATIENT.APPOINTMENT_DETAILS]: { appointmentId: string };
   [ROUTES.PATIENT.MEDICAL_RECORD_DETAILS]: { recordId: string };
   [ROUTES.PATIENT.CHAT]: { recipientId: string };
+  UploadMedicalRecord: undefined;
 };
 
 // Doctor Stack
