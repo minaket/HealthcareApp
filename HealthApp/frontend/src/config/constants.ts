@@ -97,6 +97,7 @@ export const ROUTES = {
     PROFILE: 'DoctorProfile',
     APPOINTMENTS: 'DoctorAppointments',
     PATIENTS: 'DoctorPatients',
+    PATIENT_LIST: 'DoctorPatients',
     MESSAGES: 'DoctorMessages',
     MEDICAL_RECORDS: 'DoctorMedicalRecords',
     APPOINTMENT_DETAILS: 'DoctorAppointmentDetails',

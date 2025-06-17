@@ -460,11 +460,259 @@ const createAppointment = async (req, res) => {
   }
 };
 
+// Get doctor's today appointments
+const getDoctorTodayAppointments = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+    
+    // Get doctor record
+    const doctor = await Doctor.findOne({
+      where: { userId: doctorId }
+    });
+
+    if (!doctor) {
+      return res.status(404).json({
+        message: 'Doctor not found',
+        code: 'NOT_FOUND'
+      });
+    }
+
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+    const appointments = await Appointment.findAll({
+      where: {
+        doctorId: doctor.id,
+        date: {
+          [Op.between]: [startOfDay, endOfDay]
+        },
+        status: ['scheduled', 'completed']
+      },
+      include: [{
+        model: Patient,
+        include: [{
+          model: User,
+          attributes: ['firstName', 'lastName']
+        }]
+      }],
+      order: [['date', 'ASC']]
+    });
+
+    const formattedAppointments = appointments.map(appointment => ({
+      id: appointment.id,
+      patientName: `${appointment.Patient.User.firstName} ${appointment.Patient.User.lastName}`,
+      time: appointment.date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      }),
+      type: appointment.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      status: appointment.status,
+      notes: appointment.notes
+    }));
+
+    res.json(formattedAppointments);
+  } catch (error) {
+    console.error('Get doctor today appointments error:', error);
+    res.status(500).json({
+      message: 'Error fetching today\'s appointments',
+      code: 'FETCH_ERROR'
+    });
+  }
+};
+
+// Get doctor dashboard stats
+const getDoctorDashboardStats = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+    
+    // Get doctor record
+    const doctor = await Doctor.findOne({
+      where: { userId: doctorId }
+    });
+
+    if (!doctor) {
+      return res.status(404).json({
+        message: 'Doctor not found',
+        code: 'NOT_FOUND'
+      });
+    }
+
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+    // Get today's appointments count
+    const appointmentsToday = await Appointment.count({
+      where: {
+        doctorId: doctor.id,
+        date: {
+          [Op.between]: [startOfDay, endOfDay]
+        },
+        status: ['scheduled', 'completed']
+      }
+    });
+
+    // Get total unique patients
+    const totalPatients = await Appointment.count({
+      where: {
+        doctorId: doctor.id
+      },
+      distinct: true,
+      col: 'patientId'
+    });
+
+    // Get pending medical records (mock data for now)
+    const pendingReports = 3; // This would come from medical records table
+
+    // Get unread messages (mock data for now)
+    const unreadMessages = 12; // This would come from messages table
+
+    res.json({
+      totalPatients,
+      appointmentsToday,
+      pendingReports,
+      unreadMessages
+    });
+  } catch (error) {
+    console.error('Get doctor dashboard stats error:', error);
+    res.status(500).json({
+      message: 'Error fetching dashboard stats',
+      code: 'FETCH_ERROR'
+    });
+  }
+};
+
+// Get doctor appointments by date
+const getDoctorAppointments = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+    const { date } = req.query;
+    
+    // Get doctor record
+    const doctor = await Doctor.findOne({
+      where: { userId: doctorId }
+    });
+
+    if (!doctor) {
+      return res.status(404).json({
+        message: 'Doctor not found',
+        code: 'NOT_FOUND'
+      });
+    }
+
+    let whereClause = { doctorId: doctor.id };
+    
+    if (date) {
+      const startOfDay = new Date(date + 'T00:00:00.000Z');
+      const endOfDay = new Date(date + 'T23:59:59.999Z');
+      whereClause.date = {
+        [Op.between]: [startOfDay, endOfDay]
+      };
+    }
+
+    const appointments = await Appointment.findAll({
+      where: whereClause,
+      include: [{
+        model: Patient,
+        include: [{
+          model: User,
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }]
+      }],
+      order: [['date', 'ASC']]
+    });
+
+    const formattedAppointments = appointments.map(appointment => ({
+      id: appointment.id,
+      startTime: appointment.date.toISOString(),
+      endTime: new Date(appointment.date.getTime() + 30 * 60000).toISOString(), // 30 min duration
+      type: appointment.type,
+      status: appointment.status,
+      reason: appointment.reason,
+      notes: appointment.notes,
+      patient: {
+        id: appointment.Patient.User.id,
+        firstName: appointment.Patient.User.firstName,
+        lastName: appointment.Patient.User.lastName,
+        email: appointment.Patient.User.email
+      }
+    }));
+
+    res.json(formattedAppointments);
+  } catch (error) {
+    console.error('Get doctor appointments error:', error);
+    res.status(500).json({
+      message: 'Error fetching appointments',
+      code: 'FETCH_ERROR'
+    });
+  }
+};
+
+// Update appointment status
+const updateAppointmentStatus = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { status } = req.body;
+    const doctorId = req.user.id;
+
+    // Get doctor record
+    const doctor = await Doctor.findOne({
+      where: { userId: doctorId }
+    });
+
+    if (!doctor) {
+      return res.status(404).json({
+        message: 'Doctor not found',
+        code: 'NOT_FOUND'
+      });
+    }
+
+    // Find the appointment and verify it belongs to this doctor
+    const appointment = await Appointment.findOne({
+      where: {
+        id: appointmentId,
+        doctorId: doctor.id
+      }
+    });
+
+    if (!appointment) {
+      return res.status(404).json({
+        message: 'Appointment not found',
+        code: 'NOT_FOUND'
+      });
+    }
+
+    // Update the appointment status
+    await appointment.update({ status });
+
+    res.json({
+      message: 'Appointment status updated successfully',
+      appointment: {
+        id: appointment.id,
+        status: appointment.status,
+        date: appointment.date
+      }
+    });
+  } catch (error) {
+    console.error('Update appointment status error:', error);
+    res.status(500).json({
+      message: 'Error updating appointment status',
+      code: 'UPDATE_ERROR'
+    });
+  }
+};
+
 module.exports = {
   getPatientAppointments,
   getUpcomingAppointments,
   scheduleAppointment,
   cancelAppointment,
   getAvailableSlots,
-  createAppointment
+  createAppointment,
+  getDoctorTodayAppointments,
+  getDoctorDashboardStats,
+  getDoctorAppointments,
+  updateAppointmentStatus,
 }; 

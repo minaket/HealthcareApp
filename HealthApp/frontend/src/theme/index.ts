@@ -12,14 +12,22 @@ const borderRadius = {
 
 // Theme type that includes all theme values
 export const lightTheme: Theme = {
-  colors: lightColors,
+  colors: {
+    ...lightColors,
+    background: lightColors.background,
+    text: lightColors.text,
+  },
   spacing,
   layout,
   borderRadius,
 };
 
 export const darkTheme: Theme = {
-  colors: darkColors,
+  colors: {
+    ...darkColors,
+    background: darkColors.background,
+    text: darkColors.text,
+  },
   spacing,
   layout,
   borderRadius,

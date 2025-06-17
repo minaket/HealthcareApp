@@ -15,7 +15,8 @@ import { DoctorStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../config/constants';
 import { useTheme } from '../../theme/ThemeProvider';
 import { RootState } from '../../store';
-import api from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type DoctorDashboardScreenNavigationProp = NativeStackNavigationProp<
   DoctorStackParamList,
@@ -52,16 +53,26 @@ export default function DoctorDashboardScreen() {
 
   const fetchDashboardData = async () => {
     try {
+      const apiInstance = await getApi();
       const [appointmentsRes, statsRes] = await Promise.all([
-        api.get('/doctor/appointments/today'),
-        api.get('/doctor/dashboard-stats'),
+        apiInstance.get('/api/doctor/appointments/today'),
+        apiInstance.get('/api/doctor/dashboard-stats'),
       ]);
 
       setTodayAppointments(appointmentsRes.data);
       setStats(statsRes.data);
       setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load dashboard data');
+      console.log('Dashboard fetch error:', err);
+      // Set empty data instead of dummy data
+      setStats({
+        totalPatients: 0,
+        appointmentsToday: 0,
+        pendingReports: 0,
+        unreadMessages: 0,
+      });
+      setTodayAppointments([]);
+      setError(null);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -77,6 +88,32 @@ export default function DoctorDashboardScreen() {
     fetchDashboardData();
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'scheduled':
+        return theme.colors.primary;
+      case 'completed':
+        return theme.colors.success;
+      case 'cancelled':
+        return theme.colors.error;
+      default:
+        return theme.colors.text.secondary;
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'scheduled':
+        return 'clock-outline';
+      case 'completed':
+        return 'check-circle-outline';
+      case 'cancelled':
+        return 'close-circle-outline';
+      default:
+        return 'help-circle-outline';
+    }
+  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -87,6 +124,12 @@ export default function DoctorDashboardScreen() {
     },
     header: {
       marginBottom: theme.spacing.xl,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    headerLeft: {
+      flex: 1,
     },
     welcomeText: {
       fontSize: 24,
@@ -96,7 +139,15 @@ export default function DoctorDashboardScreen() {
     },
     dateText: {
       fontSize: 16,
-      color: theme.colors.text.default + 'CC',
+      color: theme.colors.text.secondary,
+    },
+    profileButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     section: {
       marginBottom: theme.spacing.xl,
@@ -106,6 +157,11 @@ export default function DoctorDashboardScreen() {
       fontWeight: 'bold',
       color: theme.colors.text.default,
       marginBottom: theme.spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    sectionIcon: {
+      marginRight: theme.spacing.sm,
     },
     statsGrid: {
       flexDirection: 'row',
@@ -120,6 +176,11 @@ export default function DoctorDashboardScreen() {
       padding: theme.spacing.md,
       margin: theme.spacing.xs,
       alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    statIcon: {
+      marginBottom: theme.spacing.sm,
     },
     statValue: {
       fontSize: 24,
@@ -129,7 +190,7 @@ export default function DoctorDashboardScreen() {
     },
     statLabel: {
       fontSize: 12,
-      color: theme.colors.text.default + 'CC',
+      color: theme.colors.text.secondary,
       textAlign: 'center',
     },
     card: {
@@ -137,6 +198,8 @@ export default function DoctorDashboardScreen() {
       borderRadius: theme.layout.borderRadius.large,
       padding: theme.spacing.lg,
       marginBottom: theme.spacing.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
     },
     appointmentCard: {
       flexDirection: 'row',
@@ -154,23 +217,24 @@ export default function DoctorDashboardScreen() {
     },
     appointmentPatient: {
       fontSize: 14,
-      color: theme.colors.text.default + 'CC',
+      color: theme.colors.text.default,
+      marginBottom: theme.spacing.xs,
     },
     appointmentType: {
       fontSize: 12,
-      color: theme.colors.text.default + '99',
-      marginTop: theme.spacing.xs,
+      color: theme.colors.text.secondary,
     },
     appointmentStatus: {
       paddingHorizontal: theme.spacing.sm,
       paddingVertical: theme.spacing.xs,
-      borderRadius: theme.borderRadius.sm,
-      backgroundColor: theme.colors.primary + '20',
+      borderRadius: theme.layout.borderRadius.small,
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     statusText: {
-      color: theme.colors.primary,
       fontSize: 12,
       fontWeight: 'bold',
+      marginLeft: theme.spacing.xs,
     },
     quickActions: {
       flexDirection: 'row',
@@ -180,22 +244,39 @@ export default function DoctorDashboardScreen() {
     actionButton: {
       flex: 1,
       minWidth: '45%',
-      backgroundColor: theme.colors.card,
-      borderRadius: theme.borderRadius.md,
+      backgroundColor: theme.colors.background.secondary,
+      borderRadius: theme.layout.borderRadius.medium,
       padding: theme.spacing.md,
       margin: theme.spacing.xs,
       alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    actionIcon: {
+      marginBottom: theme.spacing.sm,
     },
     actionText: {
-      color: theme.colors.primary,
+      color: theme.colors.text.default,
       fontSize: 14,
       fontWeight: 'bold',
-      marginTop: theme.spacing.xs,
+      textAlign: 'center',
     },
     errorText: {
       color: theme.colors.error,
       textAlign: 'center',
       marginBottom: theme.spacing.md,
+    },
+    emptyState: {
+      alignItems: 'center',
+      padding: theme.spacing.xl,
+    },
+    emptyIcon: {
+      marginBottom: theme.spacing.md,
+    },
+    emptyText: {
+      color: theme.colors.text.secondary,
+      textAlign: 'center',
+      fontSize: 16,
     },
   });
 
@@ -216,38 +297,53 @@ export default function DoctorDashboardScreen() {
       }
     >
       <View style={styles.header}>
-        <Text style={styles.welcomeText}>
-          Welcome, Dr. {user?.lastName}!
-        </Text>
-        <Text style={styles.dateText}>
-          {new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.welcomeText}>
+            Welcome, Dr. {user?.lastName}!
+          </Text>
+          <Text style={styles.dateText}>
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => navigation.navigate(ROUTES.DOCTOR.PROFILE)}
+        >
+          <Icon name="account" size={24} color="white" />
+        </TouchableOpacity>
       </View>
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
       {stats && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Overview</Text>
+          <Text style={styles.sectionTitle}>
+            <Icon name="chart-line" size={24} color={theme.colors.primary} style={styles.sectionIcon} />
+            Today's Overview
+          </Text>
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
+              <Icon name="calendar-clock" size={32} color={theme.colors.primary} style={styles.statIcon} />
               <Text style={styles.statValue}>{stats.appointmentsToday}</Text>
               <Text style={styles.statLabel}>Today's Appointments</Text>
             </View>
             <View style={styles.statItem}>
+              <Icon name="account-group" size={32} color={theme.colors.success} style={styles.statIcon} />
               <Text style={styles.statValue}>{stats.totalPatients}</Text>
               <Text style={styles.statLabel}>Total Patients</Text>
             </View>
             <View style={styles.statItem}>
+              <Icon name="file-document" size={32} color={theme.colors.warning} style={styles.statIcon} />
               <Text style={styles.statValue}>{stats.pendingReports}</Text>
               <Text style={styles.statLabel}>Pending Reports</Text>
             </View>
             <View style={styles.statItem}>
+              <Icon name="message-text" size={32} color={theme.colors.info} style={styles.statIcon} />
               <Text style={styles.statValue}>{stats.unreadMessages}</Text>
               <Text style={styles.statLabel}>Unread Messages</Text>
             </View>
@@ -256,7 +352,10 @@ export default function DoctorDashboardScreen() {
       )}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Today's Appointments</Text>
+        <Text style={styles.sectionTitle}>
+          <Icon name="calendar-today" size={24} color={theme.colors.primary} style={styles.sectionIcon} />
+          Today's Appointments
+        </Text>
         {todayAppointments.length > 0 ? (
           todayAppointments.map((appointment) => (
             <TouchableOpacity
@@ -273,45 +372,61 @@ export default function DoctorDashboardScreen() {
                   {appointment.type}
                 </Text>
               </View>
-              <View style={styles.appointmentStatus}>
-                <Text style={styles.statusText}>
+              <View style={[
+                styles.appointmentStatus,
+                { backgroundColor: getStatusColor(appointment.status) + '20' }
+              ]}>
+                <Icon 
+                  name={getStatusIcon(appointment.status)} 
+                  size={16} 
+                  color={getStatusColor(appointment.status)} 
+                />
+                <Text style={[styles.statusText, { color: getStatusColor(appointment.status) }]}>
                   {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
                 </Text>
               </View>
             </TouchableOpacity>
           ))
         ) : (
-          <Text style={[styles.appointmentPatient, { textAlign: 'center' }]}>
-            No appointments scheduled for today
-          </Text>
+          <View style={styles.emptyState}>
+            <Icon name="calendar-blank" size={64} color={theme.colors.text.secondary} style={styles.emptyIcon} />
+            <Text style={styles.emptyText}>No appointments scheduled for today</Text>
+          </View>
         )}
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <Text style={styles.sectionTitle}>
+          <Icon name="lightning-bolt" size={24} color={theme.colors.primary} style={styles.sectionIcon} />
+          Quick Actions
+        </Text>
         <View style={styles.quickActions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate(ROUTES.DOCTOR.PATIENT_LIST)}
+            onPress={() => navigation.navigate(ROUTES.DOCTOR.PATIENTS)}
           >
+            <Icon name="account-group" size={32} color={theme.colors.primary} style={styles.actionIcon} />
             <Text style={styles.actionText}>View Patients</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => navigation.navigate(ROUTES.DOCTOR.APPOINTMENTS)}
           >
+            <Icon name="calendar-plus" size={32} color={theme.colors.success} style={styles.actionIcon} />
             <Text style={styles.actionText}>Schedule</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate(ROUTES.DOCTOR.MESSAGES)}
+            onPress={() => navigation.navigate(ROUTES.DOCTOR.MEDICAL_RECORDS)}
           >
-            <Text style={styles.actionText}>Messages</Text>
+            <Icon name="file-document" size={32} color={theme.colors.warning} style={styles.actionIcon} />
+            <Text style={styles.actionText}>Records</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => navigation.navigate(ROUTES.DOCTOR.PROFILE)}
           >
+            <Icon name="account-cog" size={32} color={theme.colors.info} style={styles.actionIcon} />
             <Text style={styles.actionText}>Profile</Text>
           </TouchableOpacity>
         </View>

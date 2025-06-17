@@ -1,9 +1,15 @@
 import { spacing, layout } from './spacing';
 
 export interface ThemeColors {
-  background: string;
+  background: {
+    default: string;
+    secondary: string;
+  };
   card: string;
-  text: string;
+  text: {
+    default: string;
+    secondary: string;
+  };
   border: string;
   primary: string;
   secondary: string;

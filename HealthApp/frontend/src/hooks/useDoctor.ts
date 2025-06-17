@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import api from '../api/axios.config';
+import { getApi } from '../api/axios.config';
 import { Doctor } from '../types/doctor';
 
 interface UseDoctorReturn {
@@ -27,7 +27,8 @@ export const useDoctor = (): UseDoctorReturn => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get(`/api/doctors/${user.id}`);
+      const apiInstance = await getApi();
+      const response = await apiInstance.get(`/api/doctors/${user.id}`);
       setDoctor(response.data.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch doctor profile');
@@ -46,7 +47,8 @@ export const useDoctor = (): UseDoctorReturn => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.patch(`/api/doctors/${user.id}`, data);
+      const apiInstance = await getApi();
+      const response = await apiInstance.patch(`/api/doctors/${user.id}`, data);
       setDoctor(response.data.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update doctor profile');
@@ -66,7 +68,8 @@ export const useDoctor = (): UseDoctorReturn => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.patch(`/api/doctors/${user.id}/availability`, { availability });
+      const apiInstance = await getApi();
+      const response = await apiInstance.patch(`/api/doctors/${user.id}/availability`, { availability });
       setDoctor(prev => prev ? { ...prev, availability } : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update availability');

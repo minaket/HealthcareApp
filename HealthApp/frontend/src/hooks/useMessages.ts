@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import initializeApi from '../api/axios.config';
+import { getApi } from '../api/axios.config';
 import { API_ENDPOINTS } from '../config/constants';
 
 interface Message {
@@ -39,7 +39,7 @@ export const useMessages = () => {
     try {
       setLoading(true);
       setError(null);
-      const api = await initializeApi();
+      const api = await getApi();
       const response = await api.get(API_ENDPOINTS.MESSAGES.CONVERSATIONS);
       setConversations(response.data);
     } catch (err) {
@@ -52,7 +52,7 @@ export const useMessages = () => {
 
   const sendMessage = useCallback(async (recipientId: string, content: string) => {
     try {
-      const api = await initializeApi();
+      const api = await getApi();
       const response = await api.post(API_ENDPOINTS.MESSAGES.BASE, {
         recipientId,
         content,
@@ -65,7 +65,7 @@ export const useMessages = () => {
 
   const markAsRead = useCallback(async (conversationId: string) => {
     try {
-      const api = await initializeApi();
+      const api = await getApi();
       await api.put(`${API_ENDPOINTS.MESSAGES.BASE}/conversations/${conversationId}/read`);
       setConversations(prev =>
         prev.map(conv =>

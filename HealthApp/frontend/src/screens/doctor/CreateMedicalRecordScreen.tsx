@@ -74,7 +74,7 @@ export default function CreateMedicalRecordScreen() {
   const fetchPatients = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get('/doctors/patients');
+      const response = await api().get('/api/doctor/patients');
       setPatients(response.data);
       setError(null);
     } catch (err: any) {
@@ -147,7 +147,7 @@ export default function CreateMedicalRecordScreen() {
           : null,
       };
 
-      await api.post('/doctors/medical-records', recordData);
+      await api().post('/api/doctor/medical-records', recordData);
       Alert.alert(
         'Success',
         'Medical record created successfully',

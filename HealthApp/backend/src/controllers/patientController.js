@@ -406,7 +406,7 @@ const updatePatientProfile = async (req, res) => {
         address: updatedPatient.emergencyContactAddress
       } : null
     };
-    
+
     res.json({
       message: 'Profile updated successfully',
       patient: profileData

@@ -35,11 +35,11 @@ const DoctorTabs = () => {
           paddingTop: 8,
         },
         tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.text,
+        tabBarInactiveTintColor: theme.colors.text.default,
         headerStyle: {
           backgroundColor: theme.colors.card,
         },
-        headerTintColor: theme.colors.text,
+        headerTintColor: theme.colors.text.default,
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
@@ -94,7 +94,7 @@ export const DoctorStack = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen 
-        name={ROUTES.DOCTOR.DASHBOARD} 
+        name="DoctorTabs" 
         component={DoctorTabs}
         options={{ headerShown: false }}
       />

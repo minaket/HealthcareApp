@@ -1,10 +1,15 @@
 import type { ThemeColors } from './types';
 
 export const lightColors: ThemeColors = {
-  background: '#FFFFFF',
+  background: {
+    default: '#FFFFFF',
+    secondary: '#F8F9FA',
+  },
   card: '#F5F5F5',
-  text: '#000000',
-  textSecondary: '#666666',
+  text: {
+    default: '#000000',
+    secondary: '#666666',
+  },
   border: '#E0E0E0',
   primary: '#1976D2',
   secondary: '#DC004E',
@@ -16,10 +21,15 @@ export const lightColors: ThemeColors = {
 };
 
 export const darkColors: ThemeColors = {
-  background: '#121212',
+  background: {
+    default: '#121212',
+    secondary: '#1E1E1E',
+  },
   card: '#1E1E1E',
-  text: '#FFFFFF',
-  textSecondary: '#AAAAAA',
+  text: {
+    default: '#FFFFFF',
+    secondary: '#AAAAAA',
+  },
   border: '#333333',
   primary: '#90CAF9',
   secondary: '#F48FB1',

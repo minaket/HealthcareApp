@@ -17,8 +17,8 @@ import { RootState } from '../../store';
 import { Appointment, Patient } from '../../types';
 import api from '../../api/axios.config';
 import { ROUTES } from '../../config/constants';
-import { format, parseISO, isToday, isAfter, isBefore } from 'date-fns';
-import { Ionicons } from '@expo/vector-icons';
+import { format, parseISO, isToday, isAfter, isBefore, addDays } from 'date-fns';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type AppointmentManagementScreenNavigationProp = NativeStackNavigationProp<
   any,
@@ -43,7 +43,7 @@ export default function AppointmentManagementScreen() {
 
   const fetchAppointments = async () => {
     try {
-      const response = await api.get('/doctors/appointments', {
+      const response = await api.get('/api/doctor/appointments', {
         params: {
           date: format(selectedDate, 'yyyy-MM-dd'),
         },
@@ -51,7 +51,9 @@ export default function AppointmentManagementScreen() {
       setAppointments(response.data);
       setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load appointments');
+      console.log('Fetch appointments error:', err);
+      setError('Failed to load appointments');
+      setAppointments([]);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -69,7 +71,7 @@ export default function AppointmentManagementScreen() {
 
   const handleUpdateStatus = async (appointmentId: string, status: string) => {
     try {
-      await api.patch(`/appointments/${appointmentId}`, { status });
+      await api.patch(`/api/appointments/${appointmentId}`, { status });
       fetchAppointments();
       Alert.alert('Success', 'Appointment status updated successfully');
     } catch (err: any) {
@@ -78,7 +80,8 @@ export default function AppointmentManagementScreen() {
   };
 
   const handleViewPatient = (patientId: string) => {
-    navigation.navigate(ROUTES.DOCTOR.PATIENT_DETAILS, { patientId });
+    // Navigate to patient details - you might need to add this route
+    console.log('View patient:', patientId);
   };
 
   const getStatusColor = (status: string) => {
@@ -92,82 +95,136 @@ export default function AppointmentManagementScreen() {
       case 'no-show':
         return theme.colors.warning;
       default:
-        return theme.colors.text;
+        return theme.colors.text.secondary;
     }
   };
 
-  const renderAppointment = (appointment: AppointmentWithPatient) => {
-    const appointmentTime = parseISO(appointment.timeSlot.startTime);
-    const isPast = isBefore(appointmentTime, new Date());
-    const statusColor = getStatusColor(appointment.status);
-
-    return (
-      <View
-        key={appointment.id}
-        style={[
-          styles.appointmentCard,
-          {
-            backgroundColor: theme.colors.card,
-            opacity: isPast ? 0.7 : 1,
-          },
-        ]}
-      >
-        <View style={styles.appointmentHeader}>
-          <View style={styles.patientInfo}>
-            <Text
-              style={[styles.patientName, { color: theme.colors.text }]}
-              onPress={() => handleViewPatient(appointment.patient.id)}
-            >
-              {appointment.patient.firstName} {appointment.patient.lastName}
-            </Text>
-            <Text style={[styles.appointmentTime, { color: theme.colors.text + '80' }]}>
-              {format(appointmentTime, 'hh:mm a')}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.statusBadge,
-              { backgroundColor: statusColor + '20' },
-            ]}
-          >
-            <Text style={[styles.statusText, { color: statusColor }]}>
-              {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={[styles.reason, { color: theme.colors.text }]}>
-          {appointment.reason}
-        </Text>
-
-        {!isPast && appointment.status === 'scheduled' && (
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: theme.colors.success }]}
-              onPress={() => handleUpdateStatus(appointment.id, 'completed')}
-            >
-              <Ionicons name="checkmark" size={20} color="white" />
-              <Text style={styles.actionButtonText}>Complete</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
-              onPress={() => handleUpdateStatus(appointment.id, 'cancelled')}
-            >
-              <Ionicons name="close" size={20} color="white" />
-              <Text style={styles.actionButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: theme.colors.warning }]}
-              onPress={() => handleUpdateStatus(appointment.id, 'no-show')}
-            >
-              <Ionicons name="alert" size={20} color="white" />
-              <Text style={styles.actionButtonText}>No Show</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    );
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'scheduled':
+        return 'clock-outline';
+      case 'completed':
+        return 'check-circle-outline';
+      case 'cancelled':
+        return 'close-circle-outline';
+      case 'no-show':
+        return 'alert-circle-outline';
+      default:
+        return 'help-circle-outline';
+    }
   };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background.default,
+    },
+    content: {
+      padding: theme.spacing.lg,
+    },
+    centered: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.spacing.xl,
+    },
+    dateTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.colors.text.default,
+    },
+    dateNavigation: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    dateNavButton: {
+      padding: theme.spacing.sm,
+      marginHorizontal: theme.spacing.xs,
+    },
+    appointmentCard: {
+      backgroundColor: theme.colors.background.secondary,
+      borderRadius: theme.layout.borderRadius.large,
+      padding: theme.spacing.lg,
+      marginBottom: theme.spacing.md,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    appointmentHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.spacing.sm,
+    },
+    patientInfo: {
+      flex: 1,
+    },
+    patientName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.text.default,
+      marginBottom: theme.spacing.xs,
+    },
+    appointmentTime: {
+      fontSize: 14,
+      color: theme.colors.text.secondary,
+    },
+    statusBadge: {
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      borderRadius: theme.layout.borderRadius.small,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      marginLeft: theme.spacing.xs,
+    },
+    reason: {
+      fontSize: 14,
+      color: theme.colors.text.secondary,
+      marginBottom: theme.spacing.md,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: theme.spacing.sm,
+    },
+    actionButton: {
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      borderRadius: theme.layout.borderRadius.medium,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    actionButtonText: {
+      color: 'white',
+      fontSize: 14,
+      fontWeight: 'bold',
+      marginLeft: theme.spacing.xs,
+    },
+    errorText: {
+      color: theme.colors.error,
+      textAlign: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    emptyState: {
+      alignItems: 'center',
+      padding: theme.spacing.xl,
+    },
+    emptyIcon: {
+      marginBottom: theme.spacing.md,
+    },
+    emptyText: {
+      textAlign: 'center',
+      color: theme.colors.text.secondary,
+      fontSize: 16,
+    },
+  });
 
   if (isLoading) {
     return (
@@ -179,13 +236,14 @@ export default function AppointmentManagementScreen() {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={styles.container}
+      contentContainerStyle={styles.content}
       refreshControl={
         <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
       }
     >
       <View style={styles.header}>
-        <Text style={[styles.dateTitle, { color: theme.colors.text }]}>
+        <Text style={styles.dateTitle}>
           {format(selectedDate, 'MMMM dd, yyyy')}
         </Text>
         <View style={styles.dateNavigation}>
@@ -193,8 +251,8 @@ export default function AppointmentManagementScreen() {
             style={styles.dateNavButton}
             onPress={() => setSelectedDate((prev) => addDays(prev, -1))}
           >
-            <Ionicons
-              name="chevron-back"
+            <Icon
+              name="chevron-left"
               size={24}
               color={theme.colors.primary}
             />
@@ -203,7 +261,7 @@ export default function AppointmentManagementScreen() {
             style={styles.dateNavButton}
             onPress={() => setSelectedDate(new Date())}
           >
-            <Text style={[styles.todayButton, { color: theme.colors.primary }]}>
+            <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
               Today
             </Text>
           </TouchableOpacity>
@@ -211,8 +269,8 @@ export default function AppointmentManagementScreen() {
             style={styles.dateNavButton}
             onPress={() => setSelectedDate((prev) => addDays(prev, 1))}
           >
-            <Ionicons
-              name="chevron-forward"
+            <Icon
+              name="chevron-right"
               size={24}
               color={theme.colors.primary}
             />
@@ -220,127 +278,93 @@ export default function AppointmentManagementScreen() {
         </View>
       </View>
 
-      <View style={styles.content}>
-        {appointments.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons
-              name="calendar-outline"
-              size={48}
-              color={theme.colors.text + '40'}
-            />
-            <Text style={[styles.emptyStateText, { color: theme.colors.text }]}>
-              No appointments scheduled for this day
-            </Text>
-          </View>
-        ) : (
-          appointments.map(renderAppointment)
-        )}
-      </View>
+      {error && <Text style={styles.errorText}>{error}</Text>}
+
+      {appointments.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Icon name="calendar-blank" size={64} color={theme.colors.text.secondary} style={styles.emptyIcon} />
+          <Text style={styles.emptyText}>No appointments scheduled for this date</Text>
+        </View>
+      ) : (
+        appointments.map((appointment) => {
+          const appointmentTime = parseISO(appointment.startTime);
+          const isPast = isBefore(appointmentTime, new Date());
+          const statusColor = getStatusColor(appointment.status);
+
+          return (
+            <View
+              key={appointment.id}
+              style={[
+                styles.appointmentCard,
+                {
+                  opacity: isPast ? 0.7 : 1,
+                },
+              ]}
+            >
+              <View style={styles.appointmentHeader}>
+                <View style={styles.patientInfo}>
+                  <Text
+                    style={styles.patientName}
+                    onPress={() => handleViewPatient(appointment.patient.id)}
+                  >
+                    {appointment.patient.firstName} {appointment.patient.lastName}
+                  </Text>
+                  <Text style={styles.appointmentTime}>
+                    {format(appointmentTime, 'hh:mm a')}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: statusColor + '20' },
+                  ]}
+                >
+                  <Icon 
+                    name={getStatusIcon(appointment.status)} 
+                    size={16} 
+                    color={statusColor} 
+                  />
+                  <Text style={[styles.statusText, { color: statusColor }]}>
+                    {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                  </Text>
+                </View>
+              </View>
+
+              {appointment.reason && (
+                <Text style={styles.reason}>
+                  {appointment.reason}
+                </Text>
+              )}
+
+              {!isPast && appointment.status === 'scheduled' && (
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.colors.success }]}
+                    onPress={() => handleUpdateStatus(appointment.id, 'completed')}
+                  >
+                    <Icon name="check" size={20} color="white" />
+                    <Text style={styles.actionButtonText}>Complete</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
+                    onPress={() => handleUpdateStatus(appointment.id, 'cancelled')}
+                  >
+                    <Icon name="close" size={20} color="white" />
+                    <Text style={styles.actionButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.colors.warning }]}
+                    onPress={() => handleUpdateStatus(appointment.id, 'no-show')}
+                  >
+                    <Icon name="alert" size={20} color="white" />
+                    <Text style={styles.actionButtonText}>No Show</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          );
+        })
+      )}
     </ScrollView>
   );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  dateTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  dateNavigation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dateNavButton: {
-    padding: 8,
-  },
-  todayButton: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  content: {
-    padding: 16,
-  },
-  appointmentCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  appointmentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  patientInfo: {
-    flex: 1,
-  },
-  patientName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  appointmentTime: {
-    fontSize: 14,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  reason: {
-    fontSize: 14,
-    marginBottom: 12,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 8,
-    flex: 1,
-    marginHorizontal: 4,
-    justifyContent: 'center',
-  },
-  actionButtonText: {
-    color: 'white',
-    marginLeft: 4,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-  },
-  emptyStateText: {
-    marginTop: 16,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-}); 
+} 

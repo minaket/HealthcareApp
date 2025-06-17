@@ -7,6 +7,7 @@ const appointmentController = require('../controllers/appointmentController');
 const messageController = require('../controllers/messageController');
 const security = require('../middleware/security');
 const userController = require('../controllers/userController');
+const medicalRecordController = require('../controllers/medicalRecordController');
 
 // Public routes
 router.post('/auth/register', security.transaction, authController.register);
@@ -27,6 +28,41 @@ protectedRouter.get('/users/doctors',
 protectedRouter.get('/doctors/:doctorId/available-slots',
   security.authorize(['patient', 'doctor']),
   appointmentController.getAvailableSlots
+);
+
+protectedRouter.get('/doctor/appointments/today',
+  security.authorize(['doctor']),
+  appointmentController.getDoctorTodayAppointments
+);
+
+protectedRouter.get('/doctor/appointments',
+  security.authorize(['doctor']),
+  appointmentController.getDoctorAppointments
+);
+
+protectedRouter.patch('/appointments/:appointmentId',
+  security.authorize(['doctor']),
+  appointmentController.updateAppointmentStatus
+);
+
+protectedRouter.get('/doctor/dashboard-stats',
+  security.authorize(['doctor']),
+  appointmentController.getDoctorDashboardStats
+);
+
+protectedRouter.get('/doctor/patients',
+  security.authorize(['doctor']),
+  patientController.getDoctorPatients
+);
+
+protectedRouter.get('/doctor/medical-records',
+  security.authorize(['doctor']),
+  medicalRecordController.getDoctorMedicalRecords
+);
+
+protectedRouter.post('/doctor/medical-records',
+  security.authorize(['doctor']),
+  medicalRecordController.createMedicalRecord
 );
 
 // Patient routes
