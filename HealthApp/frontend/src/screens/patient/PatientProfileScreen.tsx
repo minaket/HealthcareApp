@@ -9,18 +9,22 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { PatientStackScreenProps } from '../../navigation/types';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppSelector } from '../../hooks';
 import { useTheme } from '../../theme/ThemeProvider';
 import { RootState } from '../../store';
 import { Patient, MedicalRecord, EmergencyContact } from '../../types';
-import api from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
 import { ROUTES } from '../../config/constants';
+import { PatientStackParamList } from '../../types/navigation';
 
-type PatientProfileScreenProps = PatientStackScreenProps<'PatientProfile'>;
+type PatientProfileScreenNavigationProp = NativeStackNavigationProp<
+  PatientStackParamList,
+  'PatientProfile'
+>;
 
 export default function PatientProfileScreen() {
-  const navigation = useNavigation<PatientProfileScreenProps['navigation']>();
+  const navigation = useNavigation<PatientProfileScreenNavigationProp>();
   const { user } = useAppSelector((state: RootState) => state.auth);
   const { isDark, getThemeStyles } = useTheme();
   const theme = getThemeStyles(isDark);
@@ -32,13 +36,18 @@ export default function PatientProfileScreen() {
 
   const fetchPatientData = async () => {
     try {
+      const apiInstance = await getApi();
+      if (!apiInstance) {
+        throw new Error('Failed to initialize API client');
+      }
+
       const [patientRes, recordsRes] = await Promise.all([
-        api.get(`/patients/${user?.id}`),
-        api.get(`/patients/${user?.id}/medical-records`),
+        apiInstance.get(`/api/patient/profile`),
+        apiInstance.get(`/api/patient/medical-records`),
       ]);
 
       setPatient(patientRes.data);
-      setMedicalRecords(recordsRes.data);
+      setMedicalRecords(recordsRes.data.records || []);
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load profile data');

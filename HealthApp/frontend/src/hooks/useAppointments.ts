@@ -1,13 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import api from '../api/axios.config';
+import { getApi } from '../api/axios.config';
 
 export interface Appointment {
   id: string;
-  patientName: string;
-  doctorName: string;
-  date: string;
-  time: string;
+  scheduledAt: string;
+  status: string;
+  consultationType: string;
+  doctor: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    specialization: string;
+  };
 }
 
 export const useAppointments = () => {
@@ -20,8 +25,12 @@ export const useAppointments = () => {
     try {
        setIsLoading(true);
        setError(null);
-       const response = await api.get('/api/patient/appointments');
-       setAppointments(response.data);
+       const apiInstance = await getApi();
+       if (!apiInstance) {
+         throw new Error('Failed to initialize API client');
+       }
+       const response = await apiInstance.get('/api/patient/appointments');
+       setAppointments(response.data.appointments || response.data);
     } catch (err) {
        setError('Failed to fetch appointments');
     } finally {
@@ -33,5 +42,5 @@ export const useAppointments = () => {
     if (user?.id) fetchAppointments();
   }, [user?.id]);
 
-  return { appointments, isLoading, error, refresh: fetchAppointments };
+  return { appointments, isLoading, error, refetch: fetchAppointments };
 }; 

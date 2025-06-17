@@ -50,9 +50,9 @@ const getPatientAppointments = async (req, res) => {
 
     const formattedAppointments = appointments.rows.map(appointment => ({
       id: appointment.id,
-      date: appointment.date,
+      scheduledAt: appointment.date,
       status: appointment.status,
-      type: appointment.type,
+      consultationType: appointment.type,
       doctor: appointment.Doctor ? {
         id: appointment.Doctor.id,
         firstName: appointment.Doctor.User.firstName,
@@ -132,8 +132,8 @@ const getUpcomingAppointments = async (req, res) => {
 
     res.json(appointments.map(appointment => ({
       id: appointment.id,
-      date: appointment.date,
-      type: appointment.type,
+      scheduledAt: appointment.date,
+      consultationType: appointment.type,
       status: appointment.status,
       notes: appointment.notes,
       doctor: appointment.Doctor?.User ? {

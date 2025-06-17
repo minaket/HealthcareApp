@@ -16,6 +16,7 @@ export type PatientStackParamList = {
   PatientTabs: undefined;
   PatientHome: undefined;
   [ROUTES.PATIENT.PROFILE]: undefined;
+  [ROUTES.PATIENT.EDIT_PROFILE]: undefined;
   [ROUTES.PATIENT.NEW_APPOINTMENT]: undefined;
   [ROUTES.PATIENT.APPOINTMENTS]: undefined;
   [ROUTES.PATIENT.MEDICAL_RECORDS]: undefined;

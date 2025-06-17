@@ -50,6 +50,9 @@ protectedRouter.get('/patient/medical-records',
   patientController.getMedicalRecords
 );
 
+protectedRouter.get('/patient/profile', security.authorize(['patient']), patientController.getPatientProfile);
+protectedRouter.put('/patient/profile', security.authorize(['patient']), patientController.updatePatientProfile);
+
 // Message routes
 protectedRouter.get('/messages/conversations', 
   security.authorize(['patient', 'doctor']), 

@@ -9,6 +9,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 // Import screens (we'll create these next)
 import PatientDashboardScreen from '../screens/patient/PatientDashboardScreen';
 import PatientProfileScreen from '../screens/patient/PatientProfileScreen';
+import PatientEditProfileScreen from '../screens/patient/PatientEditProfileScreen';
 import AppointmentsScreen from '../screens/patient/AppointmentsScreen';
 import MedicalRecordsScreen from '../screens/patient/MedicalRecordsScreen';
 import MessagesScreen from '../screens/patient/MessagesScreen';
@@ -100,6 +101,13 @@ export const PatientStack = () => {
         component={PatientProfileScreen}
         options={{
           title: 'Profile',
+        }}
+      />
+      <Stack.Screen 
+        name={ROUTES.PATIENT.EDIT_PROFILE} 
+        component={PatientEditProfileScreen}
+        options={{
+          title: 'Edit Profile',
         }}
       />
       <Stack.Screen 

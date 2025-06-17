@@ -64,6 +64,15 @@ const User = sequelize.define('User', {
     defaultValue: false,
     field: 'two_factor_enabled'
   },
+  phoneNumber: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'phone_number'
+  },
+  address: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   lastLogin: {
     type: DataTypes.DATE,
     field: 'last_login'
@@ -126,6 +135,31 @@ const Patient = sequelize.define('Patient', {
   chronicConditions: {
     type: DataTypes.ARRAY(DataTypes.STRING),
     defaultValue: []
+  },
+  emergencyContactName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'emergency_contact_name'
+  },
+  emergencyContactRelationship: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'emergency_contact_relationship'
+  },
+  emergencyContactPhone: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'emergency_contact_phone'
+  },
+  emergencyContactEmail: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'emergency_contact_email'
+  },
+  emergencyContactAddress: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    field: 'emergency_contact_address'
   },
   status: {
     type: DataTypes.ENUM('active', 'inactive', 'deceased'),
