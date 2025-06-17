@@ -65,7 +65,7 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
           />
         ) : (
           <View style={[styles.avatar, styles.defaultAvatar, { backgroundColor: theme.colors.border }]}>
-            <Ionicons name="person" size={24} color={theme.colors.text} />
+            <Ionicons name="person" size={24} color={theme.colors.text.default} />
           </View>
         )}
         {item.unreadCount > 0 && (
@@ -79,10 +79,10 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.conversationContent}>
         <View style={styles.conversationHeader}>
-          <Text style={[styles.name, { color: theme.colors.text }]}>
+          <Text style={[styles.name, { color: theme.colors.text.default }]}>
             {item.participant.name || 'Unknown User'}
           </Text>
-          <Text style={[styles.time, { color: theme.colors.textSecondary }]}>
+          <Text style={[styles.time, { color: theme.colors.text.secondary }]}>
             {item.lastMessage?.createdAt 
               ? format(new Date(item.lastMessage.createdAt), 'MMM dd, HH:mm')
               : ''
@@ -93,8 +93,8 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
         <Text 
           style={[
             styles.messagePreview, 
-            { color: theme.colors.textSecondary },
-            item.unreadCount > 0 && { fontWeight: '600', color: theme.colors.text }
+            { color: theme.colors.text.secondary },
+            item.unreadCount > 0 && { fontWeight: '600', color: theme.colors.text.default }
           ]}
           numberOfLines={2}
         >
@@ -106,11 +106,11 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="chatbubbles-outline" size={64} color={theme.colors.textSecondary} />
-      <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+      <Ionicons name="chatbubbles-outline" size={64} color={theme.colors.text.secondary} />
+      <Text style={[styles.emptyText, { color: theme.colors.text.secondary }]}>
         No conversations yet
       </Text>
-      <Text style={[styles.emptySubtext, { color: theme.colors.textSecondary }]}>
+      <Text style={[styles.emptySubtext, { color: theme.colors.text.secondary }]}>
         Start a conversation with your doctor
       </Text>
     </View>
@@ -120,7 +120,7 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.emptyContainer}>
       <Ionicons name="alert-circle-outline" size={64} color={theme.colors.error} />
       <Text style={[styles.errorText, { color: theme.colors.error }]}>
-        {error || 'Failed to load messages'}
+        {error?.message || error?.toString() || 'Failed to load messages'}
       </Text>
       <TouchableOpacity
         style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}

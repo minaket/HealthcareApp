@@ -1,5 +1,13 @@
 // API Configuration
-export const API_URL = process.env['EXPO_PUBLIC_API_URL'] || 'http://192.168.0.103:5000';
+export const API_URL = process.env['EXPO_PUBLIC_API_URL'] || 'http://192.168.0.104:5000';
+
+// Alternative API URLs for different scenarios
+export const API_URLS = {
+  LOCALHOST: 'http://localhost:5000',
+  ANDROID_EMULATOR: 'http://10.0.2.2:5000',
+  LOCAL_IP: 'http://192.168.0.104:5000',
+  ALTERNATIVE_IP: 'http://192.168.0.103:5000',
+};
 
 // Storage Keys
 export const STORAGE_KEYS = {

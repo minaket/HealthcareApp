@@ -13,7 +13,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { DoctorStackParamList } from '../../types/navigation';
 import { useTheme } from '../../theme/ThemeProvider';
 import { ROUTES } from '../../config/constants';
-import { getApi } from '../../api/axios.config';
+import initializeApi from '../../api/axios.config';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type DoctorMedicalRecordsScreenNavigationProp = NativeStackNavigationProp<
@@ -45,8 +45,8 @@ export const DoctorMedicalRecordsScreen: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const apiInstance = await getApi();
-      const response = await apiInstance.get('/api/doctor/medical-records');
+      const client = await initializeApi();
+      const response = await client.get('/api/doctor/medical-records');
       setRecords(response.data);
       setError(null);
     } catch (err: any) {

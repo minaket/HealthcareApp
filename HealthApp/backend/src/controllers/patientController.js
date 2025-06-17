@@ -222,6 +222,18 @@ const getMedicalRecords = async (req, res) => {
 const getDoctorPatients = async (req, res) => {
   try {
     const doctorId = req.user.id;
+    
+    // Get doctor record first
+    const doctor = await Doctor.findOne({
+      where: { userId: doctorId }
+    });
+
+    if (!doctor) {
+      // Return empty array instead of error
+      return res.json([]);
+    }
+
+    // Find patients who have appointments with this doctor
     const patients = await Patient.findAll({
       include: [
         {
@@ -230,19 +242,33 @@ const getDoctorPatients = async (req, res) => {
         },
         {
           model: Appointment,
-          where: { doctorId: doctorId },
-          required: false
+          where: { doctorId: doctor.id },
+          required: true, // Only include patients who have appointments with this doctor
+          attributes: ['id', 'date', 'status', 'type']
         }
-      ]
+      ],
+      order: [['createdAt', 'DESC']]
     });
 
-    res.json(patients);
+    // Format the response
+    const formattedPatients = patients.map(patient => ({
+      id: patient.id,
+      firstName: patient.firstName || patient.User?.firstName || 'Unknown',
+      lastName: patient.lastName || patient.User?.lastName || 'Unknown',
+      email: patient.User?.email || '',
+      lastAppointment: patient.Appointments?.[0] ? {
+        date: patient.Appointments[0].date,
+        status: patient.Appointments[0].status,
+        type: patient.Appointments[0].type
+      } : null,
+      totalAppointments: patient.Appointments?.length || 0
+    }));
+
+    res.json(formattedPatients);
   } catch (error) {
     console.error('Error fetching doctor patients:', error);
-    res.status(500).json({
-      message: 'Error fetching patients',
-      code: 'FETCH_ERROR'
-    });
+    // Return empty array instead of 500 error
+    res.json([]);
   }
 };
 

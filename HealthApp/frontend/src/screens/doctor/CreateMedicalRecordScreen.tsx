@@ -13,17 +13,16 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { DoctorStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { User, Medication } from '../../types';
-import api from '../../api/axios.config';
-import { ROUTES } from '../../config/constants';
+import initializeApi from '../../api/axios.config';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 
-type CreateMedicalRecordScreenProps = {
-  navigation: NativeStackNavigationProp<DoctorStackParamList, 'CreateMedicalRecord'>;
-};
+type CreateMedicalRecordScreenNavigationProp = NativeStackNavigationProp<
+  any,
+  'CreateMedicalRecord'
+>;
 
 interface FormData {
   patientId: string;
@@ -37,7 +36,7 @@ interface FormData {
 }
 
 export default function CreateMedicalRecordScreen() {
-  const navigation = useNavigation<CreateMedicalRecordScreenProps['navigation']>();
+  const navigation = useNavigation<CreateMedicalRecordScreenNavigationProp>();
   const { isDark, getThemeStyles } = useTheme();
   const theme = getThemeStyles(isDark);
 
@@ -74,7 +73,8 @@ export default function CreateMedicalRecordScreen() {
   const fetchPatients = async () => {
     try {
       setIsLoading(true);
-      const response = await api().get('/api/doctor/patients');
+      const client = await initializeApi();
+      const response = await client.get('/api/doctor/patients');
       setPatients(response.data);
       setError(null);
     } catch (err: any) {
@@ -84,7 +84,7 @@ export default function CreateMedicalRecordScreen() {
     }
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleDateChange = (_event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
       setFormData({ ...formData, date: selectedDate });
@@ -123,21 +123,19 @@ export default function CreateMedicalRecordScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.patientId) {
-      Alert.alert('Error', 'Please select a patient');
-      return;
-    }
-
-    if (!formData.diagnosis) {
-      Alert.alert('Error', 'Please enter a diagnosis');
+    if (!selectedPatient || !formData.diagnosis.trim()) {
+      setError('Please select a patient and enter a diagnosis');
       return;
     }
 
     try {
       setIsSubmitting(true);
-
-      const recordData = {
-        ...formData,
+      setError(null);
+      const client = await initializeApi();
+      await client.post('/api/doctor/medical-records', {
+        patientId: selectedPatient.id,
+        diagnosis: formData.diagnosis.trim(),
+        notes: formData.notes.trim(),
         prescription: medications.length > 0
           ? {
               medications,
@@ -145,22 +143,13 @@ export default function CreateMedicalRecordScreen() {
               status: 'active',
             }
           : null,
-      };
+      });
 
-      await api().post('/api/doctor/medical-records', recordData);
-      Alert.alert(
-        'Success',
-        'Medical record created successfully',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
+      Alert.alert('Success', 'Medical record created successfully');
+      navigation.goBack();
     } catch (err: any) {
+      console.error('Error creating medical record:', err);
       setError(err.response?.data?.message || 'Failed to create medical record');
-      Alert.alert('Error', 'Failed to create medical record');
     } finally {
       setIsSubmitting(false);
     }

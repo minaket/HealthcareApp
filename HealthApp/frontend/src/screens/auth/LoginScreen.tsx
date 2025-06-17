@@ -42,8 +42,21 @@ export default function LoginScreen() {
 
     try {
       await dispatch(login(credentials)).unwrap();
-    } catch (err) {
-      // Error is handled by the auth slice
+    } catch (err: any) {
+      // Enhanced error handling
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (err?.code === 'NETWORK_ERROR' || err?.code === 'ECONNABORTED') {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (err?.response?.status === 401) {
+        errorMessage = 'Invalid email or password.';
+      } else if (err?.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      Alert.alert('Login Error', errorMessage);
       console.error('Login failed:', err);
     }
   };

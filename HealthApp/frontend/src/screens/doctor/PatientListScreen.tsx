@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { DoctorStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../config/constants';
-import { getApi } from '../../api/axios.config';
+import initializeApi from '../../api/axios.config';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type PatientListScreenNavigationProp = NativeStackNavigationProp<DoctorStackParamList>;
@@ -36,14 +36,13 @@ export const PatientListScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   const fetchPatients = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
-      const apiInstance = await getApi();
-      const response = await apiInstance.get('/api/doctor/patients');
+      const client = await initializeApi();
+      const response = await client.get('/api/doctor/patients');
       setPatients(response.data);
       setError(null);
     } catch (err: any) {
@@ -51,7 +50,8 @@ export const PatientListScreen: React.FC = () => {
       setError('Failed to fetch patients');
       setPatients([]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 

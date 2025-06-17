@@ -16,6 +16,16 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ApiError>;
+    
+    // Enhanced error handling
+    if (axiosError.code === 'NETWORK_ERROR' || axiosError.code === 'ECONNABORTED') {
+      throw {
+        code: 'NETWORK_ERROR',
+        message: 'Network error. Please check your connection and try again.',
+        errors: ['Connection timeout or network unavailable']
+      };
+    }
+    
     throw {
       code: axiosError.code || 'UNKNOWN_ERROR',
       message: axiosError.response?.data?.message || 'Login failed',
@@ -31,6 +41,15 @@ export const register = async (credentials: RegisterCredentials): Promise<AuthRe
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ApiError>;
+    
+    if (axiosError.code === 'NETWORK_ERROR' || axiosError.code === 'ECONNABORTED') {
+      throw {
+        code: 'NETWORK_ERROR',
+        message: 'Network error. Please check your connection and try again.',
+        errors: ['Connection timeout or network unavailable']
+      };
+    }
+    
     throw {
       code: axiosError.code || 'UNKNOWN_ERROR',
       message: axiosError.response?.data?.message || 'Registration failed',

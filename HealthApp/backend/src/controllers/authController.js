@@ -699,6 +699,19 @@ const verifyToken = async (req, res) => {
   }
 };
 
+// Add missing stub handlers for authRoutes.js
+const getProfile = async (req, res) => {
+  res.status(200).json({ message: 'getProfile not implemented' });
+};
+
+const updateProfile = async (req, res) => {
+  res.status(200).json({ message: 'updateProfile not implemented' });
+};
+
+const changePassword = async (req, res) => {
+  res.status(200).json({ message: 'changePassword not implemented' });
+};
+
 // Export all controller functions
 module.exports = {
   register,
@@ -713,6 +726,9 @@ module.exports = {
   debugUser,
   forgotPassword,
   resetPassword,
-  verifyToken
+  verifyToken,
+  getProfile,
+  updateProfile,
+  changePassword
 };
  

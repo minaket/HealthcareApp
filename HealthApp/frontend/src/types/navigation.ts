@@ -29,6 +29,7 @@ export type PatientStackParamList = {
 
 // Doctor Stack
 export type DoctorStackParamList = {
+  DoctorTabs: undefined;
   [ROUTES.DOCTOR.DASHBOARD]: undefined;
   [ROUTES.DOCTOR.PROFILE]: undefined;
   [ROUTES.DOCTOR.APPOINTMENTS]: undefined;
@@ -36,6 +37,11 @@ export type DoctorStackParamList = {
   [ROUTES.DOCTOR.MESSAGES]: undefined;
   [ROUTES.DOCTOR.MEDICAL_RECORDS]: undefined;
   [ROUTES.DOCTOR.APPOINTMENT_DETAILS]: { appointmentId: string };
+  [ROUTES.DOCTOR.PRESCRIPTION_MANAGEMENT]: { patientId: string };
+  [ROUTES.DOCTOR.MEDICAL_RECORD_MANAGEMENT]: { patientId: string };
+  [ROUTES.DOCTOR.APPOINTMENT_MANAGEMENT]: undefined;
+  [ROUTES.DOCTOR.CREATE_MEDICAL_RECORD]: undefined;
+  Chat: { chatId: string; patientName: string };
 };
 
 // Admin Stack

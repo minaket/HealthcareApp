@@ -1,7 +1,8 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, API_ENDPOINTS, STORAGE_KEYS } from '../config/constants';
 import { AuthResponse } from '../types/auth';
+import { getApiUrl } from '../utils/network';
 
 let api: AxiosInstance | null = null;
 
@@ -13,9 +14,14 @@ export const getApi = async (): Promise<AxiosInstance> => {
   const token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
   const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
+  // Get the best available API URL using dynamic detection
+  const baseURL = await getApiUrl();
+  
+  console.log('🔧 Creating axios instance with baseURL:', baseURL);
+
   api = axios.create({
-    baseURL: API_URL,
-    timeout: 10000,
+    baseURL,
+    timeout: 15000, // Increased timeout for better reliability
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -24,22 +30,32 @@ export const getApi = async (): Promise<AxiosInstance> => {
 
   // Add request interceptor
   api.interceptors.request.use(
-    async (config: AxiosRequestConfig) => {
+    async (config: InternalAxiosRequestConfig) => {
       const currentToken = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
       if (currentToken && config.headers) {
         config.headers.Authorization = `Bearer ${currentToken}`;
       }
+      
+      // Log request for debugging
+      console.log(`📤 ${config.method?.toUpperCase()} ${config.url}`);
+      
       return config;
     },
     (error) => {
+      console.error('❌ Request interceptor error:', error);
       return Promise.reject(error);
     }
   );
 
   // Add response interceptor
   api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
+      return response;
+    },
     async (error) => {
+      console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url} - ${error.response?.status || 'NETWORK_ERROR'}`);
+      
       const originalRequest = error.config;
 
       // If error is 401 and we haven't tried to refresh token yet
@@ -54,7 +70,7 @@ export const getApi = async (): Promise<AxiosInstance> => {
 
           // Call refresh token endpoint
           const response = await axios.post<AuthResponse>(
-            `${API_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`,
+            `${baseURL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`,
             { refreshToken: currentRefreshToken }
           );
 
@@ -72,8 +88,11 @@ export const getApi = async (): Promise<AxiosInstance> => {
           }
 
           // Retry original request
-          return api(originalRequest);
+          if (api) {
+            return api(originalRequest);
+          }
         } catch (refreshError) {
+          console.error('❌ Token refresh failed:', refreshError);
           // If refresh token fails, clear storage and redirect to login
           await Promise.all([
             AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN),

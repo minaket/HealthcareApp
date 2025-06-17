@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const protectedRouter = express.Router();
+const authRoutes = require('./authRoutes');
 const authController = require('../controllers/authController');
 const patientController = require('../controllers/patientController');
 const appointmentController = require('../controllers/appointmentController');
@@ -9,11 +10,8 @@ const security = require('../middleware/security');
 const userController = require('../controllers/userController');
 const medicalRecordController = require('../controllers/medicalRecordController');
 
-// Public routes
-router.post('/auth/register', security.transaction, authController.register);
-router.post('/auth/login', authController.login);
-router.post('/auth/forgot-password', authController.forgotPassword);
-router.post('/auth/reset-password', authController.resetPassword);
+// Mount auth routes
+router.use('/auth', authRoutes);
 
 // Protected routes - require authentication
 protectedRouter.use(security.authenticate);
@@ -63,6 +61,23 @@ protectedRouter.get('/doctor/medical-records',
 protectedRouter.post('/doctor/medical-records',
   security.authorize(['doctor']),
   medicalRecordController.createMedicalRecord
+);
+
+// Doctor message routes
+protectedRouter.get('/doctor/messages/recent',
+  security.authorize(['doctor']),
+  messageController.getRecentMessages
+);
+
+protectedRouter.get('/doctor/conversations',
+  security.authorize(['doctor']),
+  messageController.getDoctorConversations
+);
+
+// Test route for debugging
+protectedRouter.get('/test/models',
+  security.authorize(['doctor']),
+  messageController.testModels
 );
 
 // Patient routes

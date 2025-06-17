@@ -17,11 +17,11 @@ import { ROUTES } from '../../config/constants';
 import { useTheme } from '../../theme/ThemeProvider';
 import { RootState } from '../../store';
 import { getApi } from '../../api/axios.config';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Ionicons } from '@expo/vector-icons';
 
 type PatientDashboardScreenNavigationProp = NativeStackNavigationProp<
   PatientStackParamList,
-  'PatientDashboard'
+  'PatientHome'
 >;
 
 interface Appointment {
@@ -105,7 +105,7 @@ export default function PatientDashboardScreen() {
         apiInstance.get('/api/patient/health-summary'),
       ]);
 
-      setAppointments(appointmentsRes.data);
+      setAppointments(appointmentsRes.data || []);
       setHealthSummary(summaryRes.data);
       setError(null);
     } catch (err: any) {
@@ -115,6 +115,9 @@ export default function PatientDashboardScreen() {
         status: err.response?.status
       });
       setError(err.response?.data?.message || 'Failed to load dashboard data');
+      // Set default values to prevent loading state from getting stuck
+      setAppointments([]);
+      setHealthSummary(null);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -327,10 +330,10 @@ export default function PatientDashboardScreen() {
 
   const getSummaryIcon = (type: string) => {
     const icons = {
-      bloodType: 'blood-bag',
-      allergies: 'allergy',
-      lastCheckup: 'stethoscope',
-      nextAppointment: 'calendar-clock',
+      bloodType: 'water',
+      allergies: 'warning',
+      lastCheckup: 'medical',
+      nextAppointment: 'calendar',
     };
     return icons[type as keyof typeof icons] || 'information';
   };
@@ -359,7 +362,7 @@ export default function PatientDashboardScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.welcomeText}>
-            Welcome, {healthSummary?.patient.firstName || 'Patient'}
+            Welcome, {healthSummary?.patient?.firstName || 'Patient'}
           </Text>
           <Text style={styles.dateText}>
             {new Date().toLocaleDateString('en-US', { 
@@ -374,7 +377,7 @@ export default function PatientDashboardScreen() {
           style={styles.card}
           onPress={() => navigation.navigate(ROUTES.PATIENT.PROFILE)}
         >
-          <Icon name="account-circle" size={32} color={theme.colors.primary} />
+          <Ionicons name="person-circle" size={32} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -393,20 +396,20 @@ export default function PatientDashboardScreen() {
       {healthSummary && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            <Icon name="heart-pulse" size={24} color={theme.colors.primary} style={styles.sectionIcon} />
+            <Ionicons name="heart" size={24} color={theme.colors.primary} style={styles.sectionIcon} />
             Health Summary
           </Text>
           <View style={styles.summaryGrid}>
             <View style={[styles.summaryItem, { backgroundColor: COLORS.bloodType }]}>
               <View style={styles.summaryItemContent}>
-                <Icon 
-                  name={getSummaryIcon('bloodType')} 
+                <Ionicons 
+                  name={getSummaryIcon('bloodType') as any} 
                   size={32} 
                   color="#FFF" 
                   style={styles.summaryIcon}
                 />
                 <Text style={[styles.summaryValue, { color: '#FFF' }]}>
-                  {healthSummary.patient.bloodType || 'Not set'}
+                  {healthSummary?.patient?.bloodType || 'Not set'}
                 </Text>
                 <Text style={[styles.summaryLabel, { color: '#FFF' }]}>Blood Type</Text>
               </View>
@@ -414,14 +417,14 @@ export default function PatientDashboardScreen() {
 
             <View style={[styles.summaryItem, { backgroundColor: COLORS.allergies }]}>
               <View style={styles.summaryItemContent}>
-                <Icon 
-                  name={getSummaryIcon('allergies')} 
+                <Ionicons 
+                  name={getSummaryIcon('allergies') as any} 
                   size={32} 
                   color="#FFF" 
                   style={styles.summaryIcon}
                 />
                 <Text style={[styles.summaryValue, { color: '#FFF' }]}>
-                  {healthSummary.patient.allergies.length || 0}
+                  {healthSummary?.patient?.allergies?.length || 0}
                 </Text>
                 <Text style={[styles.summaryLabel, { color: '#FFF' }]}>Allergies</Text>
               </View>
@@ -429,8 +432,8 @@ export default function PatientDashboardScreen() {
 
             <View style={[styles.summaryItem, { backgroundColor: COLORS.lastCheckup }]}>
               <View style={styles.summaryItemContent}>
-                <Icon 
-                  name={getSummaryIcon('lastCheckup')} 
+                <Ionicons 
+                  name={getSummaryIcon('lastCheckup') as any} 
                   size={32} 
                   color="#FFF" 
                   style={styles.summaryIcon}
@@ -444,8 +447,8 @@ export default function PatientDashboardScreen() {
 
             <View style={[styles.summaryItem, { backgroundColor: COLORS.nextAppointment }]}>
               <View style={styles.summaryItemContent}>
-                <Icon 
-                  name={getSummaryIcon('nextAppointment')} 
+                <Ionicons 
+                  name={getSummaryIcon('nextAppointment') as any} 
                   size={32} 
                   color="#FFF" 
                   style={styles.summaryIcon}
@@ -460,13 +463,13 @@ export default function PatientDashboardScreen() {
             </View>
           </View>
 
-          {healthSummary.patient.needsProfileUpdate && (
+          {healthSummary?.patient?.needsProfileUpdate && (
             <TouchableOpacity
               style={styles.profileUpdateCard}
               onPress={() => navigation.navigate(ROUTES.PATIENT.PROFILE)}
             >
-              <Icon 
-                name="account-alert" 
+              <Ionicons 
+                name="warning" 
                 size={24} 
                 color={theme.colors.primary} 
                 style={styles.profileUpdateIcon}
@@ -474,8 +477,8 @@ export default function PatientDashboardScreen() {
               <Text style={styles.profileUpdateText}>
                 Complete your profile to get better health insights
               </Text>
-              <Icon 
-                name="chevron-right" 
+              <Ionicons 
+                name="chevron-forward" 
                 size={24} 
                 color={theme.colors.primary} 
               />
@@ -486,7 +489,7 @@ export default function PatientDashboardScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
-          <Icon name="rocket-launch" size={24} color={theme.colors.primary} style={styles.sectionIcon} />
+          <Ionicons name="rocket-outline" size={24} color={theme.colors.primary} style={styles.sectionIcon} />
           Quick Actions
         </Text>
         <View style={styles.quickActions}>
@@ -495,7 +498,7 @@ export default function PatientDashboardScreen() {
             onPress={() => navigation.navigate(ROUTES.PATIENT.NEW_APPOINTMENT)}
           >
             <View style={styles.actionButtonContent}>
-              <Icon name="calendar-plus" size={32} color="#FFF" style={styles.actionIcon} />
+              <Ionicons name="calendar" size={32} color="#FFF" style={styles.actionIcon} />
               <Text style={[styles.actionText, { color: '#FFF' }]}>Book Appointment</Text>
             </View>
           </TouchableOpacity>
@@ -505,7 +508,7 @@ export default function PatientDashboardScreen() {
             onPress={() => navigation.navigate(ROUTES.PATIENT.MEDICAL_RECORDS)}
           >
             <View style={styles.actionButtonContent}>
-              <Icon name="file-document" size={32} color="#FFF" style={styles.actionIcon} />
+              <Ionicons name="file-tray" size={32} color="#FFF" style={styles.actionIcon} />
               <Text style={[styles.actionText, { color: '#FFF' }]}>View Records</Text>
             </View>
           </TouchableOpacity>
@@ -515,7 +518,7 @@ export default function PatientDashboardScreen() {
             onPress={() => navigation.navigate(ROUTES.PATIENT.APPOINTMENTS)}
           >
             <View style={styles.actionButtonContent}>
-              <Icon name="pill" size={32} color="#FFF" style={styles.actionIcon} />
+              <Ionicons name="medical" size={32} color="#FFF" style={styles.actionIcon} />
               <Text style={[styles.actionText, { color: '#FFF' }]}>Appointments</Text>
             </View>
           </TouchableOpacity>
@@ -525,7 +528,7 @@ export default function PatientDashboardScreen() {
             onPress={() => navigation.navigate(ROUTES.PATIENT.MESSAGES)}
           >
             <View style={styles.actionButtonContent}>
-              <Icon name="message-text" size={32} color="#FFF" style={styles.actionIcon} />
+              <Ionicons name="chatbubble" size={32} color="#FFF" style={styles.actionIcon} />
               <Text style={[styles.actionText, { color: '#FFF' }]}>Messages</Text>
             </View>
           </TouchableOpacity>

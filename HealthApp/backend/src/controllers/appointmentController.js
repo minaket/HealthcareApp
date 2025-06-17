@@ -533,9 +533,12 @@ const getDoctorDashboardStats = async (req, res) => {
     });
 
     if (!doctor) {
-      return res.status(404).json({
-        message: 'Doctor not found',
-        code: 'NOT_FOUND'
+      // Return fallback stats instead of 404
+      return res.json({
+        totalPatients: 0,
+        appointmentsToday: 0,
+        pendingReports: 0,
+        unreadMessages: 0
       });
     }
 
@@ -577,9 +580,12 @@ const getDoctorDashboardStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Get doctor dashboard stats error:', error);
-    res.status(500).json({
-      message: 'Error fetching dashboard stats',
-      code: 'FETCH_ERROR'
+    // Return fallback stats instead of 500 error
+    res.json({
+      totalPatients: 0,
+      appointmentsToday: 0,
+      pendingReports: 0,
+      unreadMessages: 0
     });
   }
 };

@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ROUTES } from '../config/constants';
 import { DoctorStackParamList } from '../types/navigation';
 import { useTheme } from '../theme/ThemeProvider';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Ionicons } from '@expo/vector-icons';
 
 // Import screens
 import DoctorDashboardScreen from '../screens/doctor/DoctorDashboardScreen';
@@ -16,6 +16,7 @@ import PrescriptionManagementScreen from '../screens/doctor/PrescriptionManageme
 import MedicalRecordManagementScreen from '../screens/doctor/MedicalRecordManagementScreen';
 import AppointmentManagementScreen from '../screens/doctor/AppointmentManagementScreen';
 import CreateMedicalRecordScreen from '../screens/doctor/CreateMedicalRecordScreen';
+import DoctorMessagesScreen from '../screens/doctor/DoctorMessagesScreen';
 
 const Stack = createNativeStackNavigator<DoctorStackParamList>();
 const Tab = createBottomTabNavigator<DoctorStackParamList>();
@@ -52,7 +53,7 @@ const DoctorTabs = () => {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ color, size }) => (
-            <Icon name="view-dashboard" size={size} color={color} />
+            <Ionicons name="grid-outline" size={size} color={color} />
           ),
         }}
       />
@@ -62,17 +63,17 @@ const DoctorTabs = () => {
         options={{
           title: 'Patients',
           tabBarIcon: ({ color, size }) => (
-            <Icon name="account-group" size={size} color={color} />
+            <Ionicons name="people-outline" size={size} color={color} />
           ),
         }}
       />
       <Tab.Screen 
-        name={ROUTES.DOCTOR.APPOINTMENTS} 
-        component={DoctorAppointmentsScreen}
+        name={ROUTES.DOCTOR.MESSAGES} 
+        component={DoctorMessagesScreen}
         options={{
-          title: 'Appointments',
+          title: 'Messages',
           tabBarIcon: ({ color, size }) => (
-            <Icon name="calendar-clock" size={size} color={color} />
+            <Ionicons name="chatbubbles-outline" size={size} color={color} />
           ),
         }}
       />
@@ -82,7 +83,7 @@ const DoctorTabs = () => {
         options={{
           title: 'Records',
           tabBarIcon: ({ color, size }) => (
-            <Icon name="file-document" size={size} color={color} />
+            <Ionicons name="document-text-outline" size={size} color={color} />
           ),
         }}
       />
@@ -103,6 +104,13 @@ export const DoctorStack = () => {
         component={DoctorProfileScreen}
         options={{
           title: 'Profile',
+        }}
+      />
+      <Stack.Screen 
+        name={ROUTES.DOCTOR.APPOINTMENTS} 
+        component={DoctorAppointmentsScreen}
+        options={{
+          title: 'Appointments',
         }}
       />
       <Stack.Screen 
@@ -139,6 +147,13 @@ export const DoctorStack = () => {
         options={{
           title: 'Create Medical Record',
         }}
+      />
+      <Stack.Screen 
+        name="Chat" 
+        component={require('../screens/shared/ChatScreen').default}
+        options={({ route }: any) => ({
+          title: route.params?.patientName || 'Chat',
+        })}
       />
     </Stack.Navigator>
   );

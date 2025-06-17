@@ -126,7 +126,7 @@ export default function MedicalRecordsScreen() {
       backgroundColor: theme.colors.card,
       borderRadius: theme.borderRadius.md,
       padding: theme.spacing.md,
-      color: theme.colors.text,
+      color: theme.colors.text.default,
       borderWidth: 1,
       borderColor: theme.colors.border,
     },
@@ -148,7 +148,7 @@ export default function MedicalRecordsScreen() {
       borderColor: theme.colors.primary,
     },
     yearButtonText: {
-      color: theme.colors.text,
+      color: theme.colors.text.default,
       fontSize: 14,
     },
     yearButtonTextActive: {
@@ -168,7 +168,7 @@ export default function MedicalRecordsScreen() {
     },
     recordDate: {
       fontSize: 14,
-      color: theme.colors.text + 'CC',
+      color: theme.colors.text.secondary,
     },
     recordDoctor: {
       fontSize: 14,
@@ -177,12 +177,12 @@ export default function MedicalRecordsScreen() {
     recordDiagnosis: {
       fontSize: 16,
       fontWeight: 'bold',
-      color: theme.colors.text,
+      color: theme.colors.text.default,
       marginBottom: theme.spacing.xs,
     },
     recordNotes: {
       fontSize: 14,
-      color: theme.colors.text + 'CC',
+      color: theme.colors.text.secondary,
       marginBottom: theme.spacing.sm,
     },
     prescriptionContainer: {
@@ -194,7 +194,7 @@ export default function MedicalRecordsScreen() {
     prescriptionTitle: {
       fontSize: 14,
       fontWeight: 'bold',
-      color: theme.colors.text,
+      color: theme.colors.text.default,
       marginBottom: theme.spacing.xs,
     },
     medicationItem: {
@@ -204,12 +204,12 @@ export default function MedicalRecordsScreen() {
     },
     medicationName: {
       fontSize: 14,
-      color: theme.colors.text,
+      color: theme.colors.text.default,
       flex: 1,
     },
     medicationDosage: {
       fontSize: 14,
-      color: theme.colors.text + 'CC',
+      color: theme.colors.text.secondary,
     },
     attachmentsContainer: {
       flexDirection: 'row',
@@ -234,7 +234,7 @@ export default function MedicalRecordsScreen() {
     },
     emptyText: {
       textAlign: 'center',
-      color: theme.colors.text + 'CC',
+      color: theme.colors.text.secondary,
       fontSize: 16,
       marginTop: theme.spacing.xl,
     },
@@ -283,7 +283,7 @@ export default function MedicalRecordsScreen() {
         <TextInput
           style={styles.searchInput}
           placeholder="Search records..."
-          placeholderTextColor={theme.colors.text + '80'}
+          placeholderTextColor={theme.colors.text.secondary}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />

@@ -14,7 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { DoctorStackParamList } from '../../types/navigation';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Appointment, User } from '../../types';
-import api from '../../api/axios.config';
+import initializeApi from '../../api/axios.config';
 import { ROUTES } from '../../config/constants';
 import { format, parseISO, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -41,7 +41,8 @@ export default function DoctorAppointmentsScreen() {
 
   const fetchAppointments = async () => {
     try {
-      const response = await api.get('/api/doctor/appointments', {
+      const client = await initializeApi();
+      const response = await client.get('/api/doctor/appointments', {
         params: {
           date: format(selectedDate, 'yyyy-MM-dd'),
         },
@@ -69,7 +70,8 @@ export default function DoctorAppointmentsScreen() {
 
   const handleStatusUpdate = async (appointmentId: string, newStatus: Appointment['status']) => {
     try {
-      await api.patch(`/api/appointments/${appointmentId}`, { status: newStatus });
+      const client = await initializeApi();
+      await client.patch(`/api/appointments/${appointmentId}`, { status: newStatus });
       await fetchAppointments();
       Alert.alert('Success', 'Appointment status updated successfully');
     } catch (err: any) {

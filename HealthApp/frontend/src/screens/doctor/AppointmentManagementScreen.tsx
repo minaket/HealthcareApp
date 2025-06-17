@@ -9,31 +9,19 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../theme/ThemeProvider';
-import { useAppSelector } from '../../hooks';
-import { RootState } from '../../store';
 import { Appointment, Patient } from '../../types';
-import api from '../../api/axios.config';
-import { ROUTES } from '../../config/constants';
-import { format, parseISO, isToday, isAfter, isBefore, addDays } from 'date-fns';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-
-type AppointmentManagementScreenNavigationProp = NativeStackNavigationProp<
-  any,
-  'AppointmentManagement'
->;
+import initializeApi from '../../api/axios.config';
+import { format, parseISO, isBefore, addDays } from 'date-fns';
+import { Ionicons } from '@expo/vector-icons';
 
 type AppointmentWithPatient = Appointment & {
   patient: Patient;
 };
 
 export default function AppointmentManagementScreen() {
-  const navigation = useNavigation<AppointmentManagementScreenNavigationProp>();
   const { isDark, getThemeStyles } = useTheme();
   const theme = getThemeStyles(isDark);
-  const { user } = useAppSelector((state: RootState) => state.auth);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -43,7 +31,8 @@ export default function AppointmentManagementScreen() {
 
   const fetchAppointments = async () => {
     try {
-      const response = await api.get('/api/doctor/appointments', {
+      const client = await initializeApi();
+      const response = await client.get('/api/doctor/appointments', {
         params: {
           date: format(selectedDate, 'yyyy-MM-dd'),
         },
@@ -51,7 +40,6 @@ export default function AppointmentManagementScreen() {
       setAppointments(response.data);
       setError(null);
     } catch (err: any) {
-      console.log('Fetch appointments error:', err);
       setError('Failed to load appointments');
       setAppointments([]);
     } finally {
@@ -71,7 +59,8 @@ export default function AppointmentManagementScreen() {
 
   const handleUpdateStatus = async (appointmentId: string, status: string) => {
     try {
-      await api.patch(`/api/appointments/${appointmentId}`, { status });
+      const client = await initializeApi();
+      await client.patch(`/api/appointments/${appointmentId}`, { status });
       fetchAppointments();
       Alert.alert('Success', 'Appointment status updated successfully');
     } catch (err: any) {
@@ -79,9 +68,9 @@ export default function AppointmentManagementScreen() {
     }
   };
 
-  const handleViewPatient = (patientId: string) => {
-    // Navigate to patient details - you might need to add this route
-    console.log('View patient:', patientId);
+  const handleViewPatient = (_patientId: string) => {
+    // TODO: Implement navigation to patient details
+    // For now, this is a placeholder for future implementation
   };
 
   const getStatusColor = (status: string) => {
@@ -102,9 +91,9 @@ export default function AppointmentManagementScreen() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return 'clock-outline';
+        return 'time-outline';
       case 'completed':
-        return 'check-circle-outline';
+        return 'checkmark-circle-outline';
       case 'cancelled':
         return 'close-circle-outline';
       case 'no-show':
@@ -251,8 +240,8 @@ export default function AppointmentManagementScreen() {
             style={styles.dateNavButton}
             onPress={() => setSelectedDate((prev) => addDays(prev, -1))}
           >
-            <Icon
-              name="chevron-left"
+            <Ionicons
+              name="chevron-back"
               size={24}
               color={theme.colors.primary}
             />
@@ -269,8 +258,8 @@ export default function AppointmentManagementScreen() {
             style={styles.dateNavButton}
             onPress={() => setSelectedDate((prev) => addDays(prev, 1))}
           >
-            <Icon
-              name="chevron-right"
+            <Ionicons
+              name="chevron-forward"
               size={24}
               color={theme.colors.primary}
             />
@@ -280,9 +269,9 @@ export default function AppointmentManagementScreen() {
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
-      {appointments.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Icon name="calendar-blank" size={64} color={theme.colors.text.secondary} style={styles.emptyIcon} />
+        {appointments.length === 0 ? (
+          <View style={styles.emptyState}>
+          <Ionicons name="calendar" size={64} color={theme.colors.text.secondary} style={styles.emptyIcon} />
           <Text style={styles.emptyText}>No appointments scheduled for this date</Text>
         </View>
       ) : (
@@ -319,15 +308,15 @@ export default function AppointmentManagementScreen() {
                     { backgroundColor: statusColor + '20' },
                   ]}
                 >
-                  <Icon 
+                  <Ionicons 
                     name={getStatusIcon(appointment.status)} 
-                    size={16} 
+                    size={20} 
                     color={statusColor} 
                   />
                   <Text style={[styles.statusText, { color: statusColor }]}>
                     {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                  </Text>
-                </View>
+            </Text>
+          </View>
               </View>
 
               {appointment.reason && (
@@ -342,29 +331,29 @@ export default function AppointmentManagementScreen() {
                     style={[styles.actionButton, { backgroundColor: theme.colors.success }]}
                     onPress={() => handleUpdateStatus(appointment.id, 'completed')}
                   >
-                    <Icon name="check" size={20} color="white" />
+                    <Ionicons name="checkmark" size={20} color="white" />
                     <Text style={styles.actionButtonText}>Complete</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
                     onPress={() => handleUpdateStatus(appointment.id, 'cancelled')}
                   >
-                    <Icon name="close" size={20} color="white" />
+                    <Ionicons name="close" size={20} color="white" />
                     <Text style={styles.actionButtonText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: theme.colors.warning }]}
                     onPress={() => handleUpdateStatus(appointment.id, 'no-show')}
                   >
-                    <Icon name="alert" size={20} color="white" />
+                    <Ionicons name="alert" size={20} color="white" />
                     <Text style={styles.actionButtonText}>No Show</Text>
                   </TouchableOpacity>
                 </View>
-              )}
-            </View>
+        )}
+      </View>
           );
         })
       )}
     </ScrollView>
   );
-} 
+}
