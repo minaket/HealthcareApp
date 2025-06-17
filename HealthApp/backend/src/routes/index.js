@@ -9,14 +9,6 @@ const security = require('../middleware/security');
 const userController = require('../controllers/userController');
 
 // Public routes
-router.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is healthy' });
-});
-
-router.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is healthy' });
-});
-
 router.post('/auth/register', security.transaction, authController.register);
 router.post('/auth/login', authController.login);
 router.post('/auth/forgot-password', authController.forgotPassword);
@@ -80,6 +72,6 @@ protectedRouter.post('/messages',
 );
 
 // Mount protected routes under /api
-router.use('/api', protectedRouter);
+router.use('/', protectedRouter);
 
 module.exports = router; 

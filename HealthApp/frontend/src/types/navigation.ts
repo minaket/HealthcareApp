@@ -39,9 +39,8 @@ export type DoctorStackParamList = {
 // Admin Stack
 export type AdminStackParamList = {
   [ROUTES.ADMIN.DASHBOARD]: undefined;
-  [ROUTES.ADMIN.USERS]: undefined;
-  [ROUTES.ADMIN.REPORTS]: undefined;
-  [ROUTES.ADMIN.SETTINGS]: undefined;
+  [ROUTES.ADMIN.USER_MANAGEMENT]: undefined;
+  [ROUTES.ADMIN.SYSTEM_SETTINGS]: undefined;
 };
 
 // Root Stack

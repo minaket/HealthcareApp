@@ -492,7 +492,7 @@ export default function PatientDashboardScreen() {
         <View style={styles.quickActions}>
           <TouchableOpacity 
             style={[styles.actionButton, { backgroundColor: COLORS.bookAppointment }]}
-            onPress={() => navigation.navigate(ROUTES.PATIENT.BOOK_APPOINTMENT)}
+            onPress={() => navigation.navigate(ROUTES.PATIENT.NEW_APPOINTMENT)}
           >
             <View style={styles.actionButtonContent}>
               <Icon name="calendar-plus" size={32} color="#FFF" style={styles.actionIcon} />
@@ -512,11 +512,11 @@ export default function PatientDashboardScreen() {
 
           <TouchableOpacity 
             style={[styles.actionButton, { backgroundColor: COLORS.prescriptions }]}
-            onPress={() => navigation.navigate(ROUTES.PATIENT.PRESCRIPTIONS)}
+            onPress={() => navigation.navigate(ROUTES.PATIENT.APPOINTMENTS)}
           >
             <View style={styles.actionButtonContent}>
               <Icon name="pill" size={32} color="#FFF" style={styles.actionIcon} />
-              <Text style={[styles.actionText, { color: '#FFF' }]}>Prescriptions</Text>
+              <Text style={[styles.actionText, { color: '#FFF' }]}>Appointments</Text>
             </View>
           </TouchableOpacity>
 
