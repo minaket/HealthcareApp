@@ -9,13 +9,18 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../config/constants';
 import { useTheme } from '../../theme/ThemeProvider';
-import api from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
+import { API_ENDPOINTS } from '../../config/constants';
+import { Card } from '../../components/common/Card';
+import { Button } from '../../components/common/Button';
+import { Input } from '../../components/common/Input';
 
 type ResetPasswordScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -47,15 +52,14 @@ export default function ResetPasswordScreen() {
       return;
     }
 
-    if (passwords.password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters long');
+    if (passwords.password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
       return;
     }
 
     setIsLoading(true);
-    setError(null);
-
     try {
+      const api = await getApi();
       await api.post('/auth/reset-password', {
         token: route.params.token,
         password: passwords.password,
@@ -67,12 +71,16 @@ export default function ResetPasswordScreen() {
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate(ROUTES.AUTH.LOGIN),
+            onPress: () => navigation.navigate('Login'),
           },
         ]
       );
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to reset password');
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'Failed to reset password. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }

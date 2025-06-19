@@ -16,7 +16,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppSelector } from '../../hooks';
 import { RootState } from '../../store';
 import { MedicalRecord, Patient } from '../../types';
-import initializeApi from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
 import { ROUTES } from '../../config/constants';
 import { format, parseISO } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,7 +55,7 @@ export default function MedicalRecordManagementScreen() {
 
   const fetchPatientData = async () => {
     try {
-      const client = await initializeApi();
+      const client = await getApi();
       const [patientRes, recordsRes] = await Promise.all([
         client.get(`/patients/${patientId}`),
         client.get(`/patients/${patientId}/medical-records`),
@@ -90,7 +90,7 @@ export default function MedicalRecordManagementScreen() {
           name: result.name,
         } as any);
 
-        const client = await initializeApi();
+        const client = await getApi();
         const response = await client.post('/medical-records/upload', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -114,7 +114,7 @@ export default function MedicalRecordManagementScreen() {
     }
 
     try {
-      const client = await initializeApi();
+      const client = await getApi();
       const response = await client.post(`/patients/${patientId}/medical-records`, {
         ...newRecord,
         doctorId: user?.id,

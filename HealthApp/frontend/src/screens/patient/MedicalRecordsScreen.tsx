@@ -270,7 +270,7 @@ export default function MedicalRecordsScreen() {
           <Text style={styles.title}>Medical Records</Text>
           <TouchableOpacity
             style={[styles.uploadButton, { backgroundColor: theme.colors.primary }]}
-            onPress={() => navigation.navigate('UploadMedicalRecord' as any)}
+            onPress={() => navigation.navigate(ROUTES.PATIENT.UPLOAD_MEDICAL_RECORD)}
           >
             <Text style={styles.uploadButtonText}>Upload</Text>
           </TouchableOpacity>

@@ -149,7 +149,7 @@ export const DoctorStack = () => {
         }}
       />
       <Stack.Screen 
-        name="Chat" 
+        name={ROUTES.DOCTOR.CHAT} 
         component={require('../screens/shared/ChatScreen').default}
         options={({ route }: any) => ({
           title: route.params?.patientName || 'Chat',

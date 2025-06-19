@@ -13,6 +13,9 @@ const medicalRecordController = require('../controllers/medicalRecordController'
 // Mount auth routes
 router.use('/auth', authRoutes);
 
+// Test connection route (no auth required)
+router.get('/test/connection', messageController.testConnection);
+
 // Protected routes - require authentication
 protectedRouter.use(security.authenticate);
 
@@ -75,6 +78,12 @@ protectedRouter.get('/doctor/conversations',
 );
 
 // Test route for debugging
+protectedRouter.get('/test/appointments',
+  security.authorize(['patient', 'doctor', 'admin']),
+  appointmentController.testAppointmentSystem
+);
+
+// Test route for debugging
 protectedRouter.get('/test/models',
   security.authorize(['doctor']),
   messageController.testModels
@@ -94,6 +103,11 @@ protectedRouter.get('/patient/appointments/upcoming',
 protectedRouter.post('/patient/appointments',
   security.authorize(['patient']),
   appointmentController.createAppointment
+);
+
+protectedRouter.get('/patient/doctors',
+  security.authorize(['patient']),
+  userController.getDoctors
 );
 
 protectedRouter.get('/patient/health-summary',
@@ -125,6 +139,11 @@ protectedRouter.get('/messages/doctor/:doctorId',
   messageController.getOrCreateConversation
 );
 
+protectedRouter.get('/messages/patient/:patientId',
+  security.authorize(['doctor']),
+  messageController.getOrCreateConversation
+);
+
 protectedRouter.get('/messages/:conversationId', 
   security.authorize(['patient', 'doctor']), 
   messageController.getMessages
@@ -133,6 +152,22 @@ protectedRouter.get('/messages/:conversationId',
 protectedRouter.post('/messages', 
   security.authorize(['patient', 'doctor']), 
   messageController.sendMessage
+);
+
+protectedRouter.put('/messages/conversations/:conversationId/read',
+  security.authorize(['doctor', 'patient']),
+  messageController.markConversationAsRead
+);
+
+// Doctor routes
+protectedRouter.get('/doctor/appointments/upcoming',
+  security.authorize(['doctor']),
+  appointmentController.getDoctorUpcomingAppointments
+);
+
+protectedRouter.patch('/patient/appointments/:appointmentId/cancel',
+  security.authorize(['patient']),
+  appointmentController.cancelPatientAppointment
 );
 
 // Mount protected routes under /api

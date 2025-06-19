@@ -476,6 +476,7 @@ Message.belongsTo(Conversation, { foreignKey: 'conversationId' });
 
 User.hasMany(Message, { foreignKey: 'senderId' });
 Message.belongsTo(User, { foreignKey: 'senderId' });
+Message.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
 
 User.hasMany(AccessLog, { foreignKey: 'userId' });
 AccessLog.belongsTo(User, { foreignKey: 'userId' });

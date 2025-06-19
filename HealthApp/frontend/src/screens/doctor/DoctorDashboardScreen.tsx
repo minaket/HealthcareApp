@@ -8,14 +8,14 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppSelector } from '../../hooks';
 import { DoctorStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../config/constants';
 import { useTheme } from '../../theme/ThemeProvider';
 import { RootState } from '../../store';
-import initializeApi from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
 import { Ionicons } from '@expo/vector-icons';
 
 type DoctorDashboardScreenNavigationProp = NativeStackNavigationProp<
@@ -52,7 +52,7 @@ export default function DoctorDashboardScreen() {
 
   const fetchDashboardData = async () => {
     try {
-      const client = await initializeApi();
+      const client = await getApi();
       
       // Fetch data with better error handling
       const [messagesRes, statsRes] = await Promise.allSettled([
@@ -103,6 +103,13 @@ export default function DoctorDashboardScreen() {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // Refresh dashboard when coming back to this screen (e.g., after reading messages)
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchDashboardData();
+    }, [])
+  );
 
   const onRefresh = () => {
     setIsRefreshing(true);

@@ -9,13 +9,18 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../config/constants';
 import { useTheme } from '../../theme/ThemeProvider';
-import api from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
+import { API_ENDPOINTS } from '../../config/constants';
+import { Card } from '../../components/common/Card';
+import { Button } from '../../components/common/Button';
+import { Input } from '../../components/common/Input';
 
 type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -32,28 +37,31 @@ export default function ForgotPasswordScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    if (!email) {
+    if (!email.trim()) {
       Alert.alert('Error', 'Please enter your email address');
       return;
     }
 
     setIsLoading(true);
-    setError(null);
-
     try {
+      const api = await getApi();
       await api.post('/auth/forgot-password', { email });
       Alert.alert(
         'Success',
-        'If an account exists with this email, you will receive password reset instructions.',
+        'Password reset instructions have been sent to your email address.',
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate(ROUTES.AUTH.LOGIN),
+            onPress: () => navigation.navigate('Login'),
           },
         ]
       );
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to process request');
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'Failed to send reset email. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }

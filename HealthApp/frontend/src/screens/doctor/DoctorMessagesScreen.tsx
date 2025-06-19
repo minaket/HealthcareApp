@@ -15,9 +15,10 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppSelector } from '../../hooks';
 import { RootState } from '../../store';
 import { Chat, User, Message } from '../../types';
-import initializeApi from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
+import { ROUTES } from '../../config/constants';
 
 type DoctorMessagesScreenNavigationProp = NativeStackNavigationProp<
   any,
@@ -44,7 +45,7 @@ export default function DoctorMessagesScreen() {
 
   const fetchConversations = async () => {
     try {
-      const client = await initializeApi();
+      const client = await getApi();
       const response = await client.get('/api/doctor/conversations');
       setConversations(response.data);
       setError(null);
@@ -68,7 +69,7 @@ export default function DoctorMessagesScreen() {
   };
 
   const handleChatPress = (chat: ChatWithPatient) => {
-    navigation.navigate('Chat', {
+    navigation.navigate(ROUTES.DOCTOR.CHAT, {
       chatId: chat.id,
       patientName: `${chat.patient.firstName} ${chat.patient.lastName}`,
     });

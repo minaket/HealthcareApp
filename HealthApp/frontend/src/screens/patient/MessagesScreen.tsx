@@ -42,7 +42,10 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
   const handleConversationPress = (conversation: any) => {
     try {
       navigation.navigate(ROUTES.PATIENT.CHAT, { 
-        recipientId: conversation.participant.id 
+        chatId: conversation.id,
+        patientName: conversation.participant.firstName && conversation.participant.lastName
+          ? `Dr. ${conversation.participant.firstName} ${conversation.participant.lastName}`
+          : 'Unknown User'
       });
     } catch (err) {
       console.error('Navigation error:', err);
@@ -80,7 +83,9 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.conversationContent}>
         <View style={styles.conversationHeader}>
           <Text style={[styles.name, { color: theme.colors.text.default }]}>
-            {item.participant.name || 'Unknown User'}
+            {item.participant.firstName && item.participant.lastName
+              ? `Dr. ${item.participant.firstName} ${item.participant.lastName}`
+              : 'Unknown User'}
           </Text>
           <Text style={[styles.time, { color: theme.colors.text.secondary }]}>
             {item.lastMessage?.createdAt 
@@ -141,6 +146,19 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: theme.colors.text.default }]}>
+          Messages
+        </Text>
+        <TouchableOpacity
+          style={[styles.newMessageButton, { backgroundColor: theme.colors.primary }]}
+          onPress={() => navigation.navigate(ROUTES.PATIENT.MESSAGE_DOCTORS)}
+        >
+          <Ionicons name="add" size={20} color="#FFF" />
+          <Text style={styles.newMessageButtonText}>New Message</Text>
+        </TouchableOpacity>
+      </View>
+      
       {error && !refreshing ? (
         renderErrorState()
       ) : (
@@ -262,6 +280,28 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  newMessageButton: {
+    padding: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  newMessageButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
 

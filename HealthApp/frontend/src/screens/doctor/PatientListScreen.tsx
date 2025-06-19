@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { DoctorStackParamList } from '../../types/navigation';
 import { ROUTES } from '../../config/constants';
-import initializeApi from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type PatientListScreenNavigationProp = NativeStackNavigationProp<DoctorStackParamList>;
@@ -41,7 +41,7 @@ export const PatientListScreen: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const client = await initializeApi();
+      const client = await getApi();
       const response = await client.get('/api/doctor/patients');
       setPatients(response.data);
       setError(null);

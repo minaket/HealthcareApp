@@ -18,7 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PatientStackParamList, DoctorStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Chat, Message, User } from '../../types';
-import api from '../../api/axios.config';
+import initializeApi from '../../api/axios.config';
 import { ROUTES } from '../../config/constants';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { useAppSelector } from '../../hooks';
@@ -49,7 +49,6 @@ export default function ChatScreen() {
   const { isDark, getThemeStyles } = useTheme();
   const theme = getThemeStyles(isDark);
 
-  const [chat, setChat] = useState<ChatWithUser | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -60,17 +59,31 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    fetchChat();
+    fetchMessages();
     const interval = setInterval(fetchMessages, 5000); // Poll for new messages
     return () => clearInterval(interval);
   }, [route.params.chatId]);
 
-  const fetchChat = async () => {
+  useEffect(() => {
+    const markAsRead = async () => {
+      try {
+        const api = await initializeApi();
+        await api.put(`/api/messages/conversations/${route.params.chatId}/read`);
+      } catch (err) {
+        // Ignore errors for now
+      }
+    };
+    if (route.params.chatId) {
+      markAsRead();
+    }
+  }, [route.params.chatId]);
+
+  const fetchMessages = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get(`/chats/${route.params.chatId}`);
-      setChat(response.data);
-      setMessages(response.data.messages);
+      const api = await initializeApi();
+      const response = await api.get(`/api/messages/${route.params.chatId}`);
+      setMessages(response.data);
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load chat');
@@ -79,21 +92,13 @@ export default function ChatScreen() {
     }
   };
 
-  const fetchMessages = async () => {
-    try {
-      const response = await api.get(`/chats/${route.params.chatId}/messages`);
-      setMessages(response.data);
-    } catch (err) {
-      console.error('Failed to fetch new messages:', err);
-    }
-  };
-
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-
     try {
       setIsSending(true);
-      const response = await api.post(`/chats/${route.params.chatId}/messages`, {
+      const api = await initializeApi();
+      const response = await api.post(`/api/messages`, {
+        conversationId: route.params.chatId,
         content: newMessage.trim(),
       });
       setMessages([...messages, response.data]);
@@ -140,6 +145,7 @@ export default function ChatScreen() {
         name: 'image.jpg',
       } as any);
 
+      const api = await initializeApi();
       const response = await api.post(
         `/chats/${route.params.chatId}/messages/image`,
         formData,
@@ -188,6 +194,7 @@ export default function ChatScreen() {
         name: file.name,
       } as any);
 
+      const api = await initializeApi();
       const response = await api.post(
         `/chats/${route.params.chatId}/messages/file`,
         formData,
@@ -507,13 +514,16 @@ export default function ChatScreen() {
     );
   }
 
-  if (!chat) {
+  if (error) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={styles.errorText}>Chat not found</Text>
+        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }
+
+  // Use navigation params for header info
+  const chatHeaderName = route.params?.patientName || route.params?.doctorName || 'Chat';
 
   return (
     <KeyboardAvoidingView
@@ -522,36 +532,20 @@ export default function ChatScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <View style={styles.header}>
-        {chat.otherUser.avatar ? (
-          <Image source={{ uri: chat.otherUser.avatar }} style={styles.avatar} />
-        ) : (
-          <View
-            style={[
-              styles.avatar,
-              { backgroundColor: theme.colors.primary },
-            ]}
-          >
-            <Text style={{ color: theme.colors.white, fontSize: 16 }}>
-              {chat.otherUser.firstName[0]}
-              {chat.otherUser.lastName[0]}
-            </Text>
-          </View>
-        )}
-        <View style={styles.headerInfo}>
-          <Text style={styles.userName}>
-            {user?.role === 'patient'
-              ? `Dr. ${chat.otherUser.firstName} ${chat.otherUser.lastName}`
-              : `${chat.otherUser.firstName} ${chat.otherUser.lastName}`}
-          </Text>
-          <Text style={styles.userStatus}>
-            {user?.role === 'patient'
-              ? chat.otherUser.specialization
-              : 'Patient'}
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: theme.colors.primary },
+          ]}
+        >
+          <Text style={{ color: theme.colors.white, fontSize: 16 }}>
+            {chatHeaderName.split(' ').map((n: string) => n[0]).join('')}
           </Text>
         </View>
+        <View style={styles.headerInfo}>
+          <Text style={styles.userName}>{chatHeaderName}</Text>
+        </View>
       </View>
-
-      {error && <Text style={styles.errorText}>{error}</Text>}
 
       <FlatList
         ref={flatListRef}

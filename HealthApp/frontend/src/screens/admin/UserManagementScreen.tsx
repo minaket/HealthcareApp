@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '../../theme/ThemeProvider';
-import api from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
 import { Ionicons } from '@expo/vector-icons';
 
 interface User {
@@ -23,7 +23,7 @@ export default function UserManagementScreen() {
 
   const fetchUsers = async () => {
     try {
-       const res = await api.get('/admin/users');
+       const res = await getApi.get('/admin/users');
        setUsers(res.data);
        setError(null);
     } catch (err: any) {
@@ -35,7 +35,7 @@ export default function UserManagementScreen() {
 
   const handleBlockUser = async (user: User) => {
     try {
-       await api.post(`/admin/users/${user.id}/block`);
+       await getApi.post(`/admin/users/${user.id}/block`);
        fetchUsers();
        Alert.alert('Success', `User ${user.name} (${user.email}) has been blocked.`);
     } catch (err: any) {
@@ -45,7 +45,7 @@ export default function UserManagementScreen() {
 
   const handleUnblockUser = async (user: User) => {
     try {
-       await api.post(`/admin/users/${user.id}/unblock`);
+       await getApi.post(`/admin/users/${user.id}/unblock`);
        fetchUsers();
        Alert.alert('Success', `User ${user.name} (${user.email}) has been unblocked.`);
     } catch (err: any) {
@@ -55,7 +55,7 @@ export default function UserManagementScreen() {
 
   const handleDeleteUser = async (user: User) => {
     try {
-       await api.delete(`/admin/users/${user.id}`);
+       await getApi.delete(`/admin/users/${user.id}`);
        fetchUsers();
        Alert.alert('Success', `User ${user.name} (${user.email}) has been deleted.`);
     } catch (err: any) {

@@ -1,93 +1,22 @@
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ROUTES } from '../config/constants';
 import { PatientStackParamList } from '../types/navigation';
-import { useTheme } from '../theme/ThemeProvider';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-// Import screens (we'll create these next)
-import PatientDashboardScreen from '../screens/patient/PatientDashboardScreen';
+// Import screens
+import PatientTabs from './PatientTabs';
 import PatientProfileScreen from '../screens/patient/PatientProfileScreen';
 import PatientEditProfileScreen from '../screens/patient/PatientEditProfileScreen';
 import AppointmentsScreen from '../screens/patient/AppointmentsScreen';
 import MedicalRecordsScreen from '../screens/patient/MedicalRecordsScreen';
 import MessagesScreen from '../screens/patient/MessagesScreen';
+import MessageDoctorsScreen from '../screens/patient/MessageDoctorsScreen';
 import PatientNewAppointmentScreen from '../screens/patient/PatientNewAppointmentScreen';
+import AppointmentDetailsScreen from '../screens/shared/AppointmentDetailsScreen';
+import MedicalRecordDetailsScreen from '../screens/shared/MedicalRecordDetailsScreen';
 import UploadMedicalRecordScreen from '../screens/patient/UploadMedicalRecordScreen';
 
 const Stack = createNativeStackNavigator<PatientStackParamList>();
-const Tab = createBottomTabNavigator<PatientStackParamList>();
-
-const PatientTabs = () => {
-  const { isDark, getThemeStyles } = useTheme();
-  const theme = getThemeStyles(isDark);
-
-  return (
-    <Tab.Navigator
-      screenOptions={{
-        tabBarStyle: {
-          backgroundColor: theme.colors.card,
-          borderTopColor: theme.colors.border,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.text,
-        headerStyle: {
-          backgroundColor: theme.colors.card,
-        },
-        headerTintColor: theme.colors.text,
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
-      }}
-    >
-      <Tab.Screen 
-        name="PatientHome" 
-        component={PatientDashboardScreen}
-        options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="view-dashboard" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen 
-        name={ROUTES.PATIENT.APPOINTMENTS} 
-        component={AppointmentsScreen}
-        options={{
-          title: 'Appointments',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="calendar-clock" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen 
-        name={ROUTES.PATIENT.MEDICAL_RECORDS} 
-        component={MedicalRecordsScreen}
-        options={{
-          title: 'Records',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="file-document" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen 
-        name={ROUTES.PATIENT.MESSAGES} 
-        component={MessagesScreen}
-        options={{
-          title: 'Messages',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="message" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tab.Navigator>
-  );
-};
 
 export const PatientStack = () => {
   return (
@@ -112,14 +41,63 @@ export const PatientStack = () => {
         }}
       />
       <Stack.Screen 
-        name={ROUTES.PATIENT.NEW_APPOINTMENT} 
-        component={PatientNewAppointmentScreen}
+        name={ROUTES.PATIENT.APPOINTMENTS} 
+        component={AppointmentsScreen}
         options={{
-          title: 'New Appointment',
+          title: 'Appointments',
         }}
       />
       <Stack.Screen 
-        name="UploadMedicalRecord" 
+        name={ROUTES.PATIENT.MEDICAL_RECORDS} 
+        component={MedicalRecordsScreen}
+        options={{
+          title: 'Medical Records',
+        }}
+      />
+      <Stack.Screen 
+        name={ROUTES.PATIENT.MESSAGES} 
+        component={MessagesScreen}
+        options={{
+          title: 'Messages',
+        }}
+      />
+      <Stack.Screen 
+        name={ROUTES.PATIENT.MESSAGE_DOCTORS} 
+        component={MessageDoctorsScreen}
+        options={{
+          title: 'Message Doctors',
+        }}
+      />
+      <Stack.Screen 
+        name={ROUTES.PATIENT.NEW_APPOINTMENT} 
+        component={PatientNewAppointmentScreen}
+        options={{
+          title: 'Book Appointment',
+        }}
+      />
+      <Stack.Screen 
+        name={ROUTES.PATIENT.APPOINTMENT_DETAILS} 
+        component={AppointmentDetailsScreen}
+        options={{
+          title: 'Appointment Details',
+        }}
+      />
+      <Stack.Screen 
+        name={ROUTES.PATIENT.MEDICAL_RECORD_DETAILS} 
+        component={MedicalRecordDetailsScreen}
+        options={{
+          title: 'Medical Record Details',
+        }}
+      />
+      <Stack.Screen 
+        name={ROUTES.PATIENT.CHAT} 
+        component={require('../screens/shared/ChatScreen').default}
+        options={({ route }: any) => ({
+          title: route.params?.patientName || 'Chat',
+        })}
+      />
+      <Stack.Screen 
+        name={ROUTES.PATIENT.UPLOAD_MEDICAL_RECORD} 
         component={UploadMedicalRecordScreen}
         options={{
           title: 'Upload Medical Record',

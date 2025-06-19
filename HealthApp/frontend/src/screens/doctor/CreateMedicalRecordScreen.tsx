@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../../theme/ThemeProvider';
 import { User, Medication } from '../../types';
-import initializeApi from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 
@@ -73,7 +73,7 @@ export default function CreateMedicalRecordScreen() {
   const fetchPatients = async () => {
     try {
       setIsLoading(true);
-      const client = await initializeApi();
+      const client = await getApi();
       const response = await client.get('/api/doctor/patients');
       setPatients(response.data);
       setError(null);
@@ -131,7 +131,7 @@ export default function CreateMedicalRecordScreen() {
     try {
       setIsSubmitting(true);
       setError(null);
-      const client = await initializeApi();
+      const client = await getApi();
       await client.post('/api/doctor/medical-records', {
         patientId: selectedPatient.id,
         diagnosis: formData.diagnosis.trim(),

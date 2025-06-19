@@ -57,7 +57,6 @@ export default function PatientNewAppointmentScreen() {
       setLoading(true);
       const api = await initializeApi();
       const response = await api.get(API_ENDPOINTS.USERS.DOCTORS);
-      // Backend returns { data: doctors, total: count }
       setDoctors(response.data?.data || []);
     } catch (error) {
       console.error('Error fetching doctors:', error);
@@ -70,12 +69,11 @@ export default function PatientNewAppointmentScreen() {
 
   const fetchAvailableSlots = async () => {
     if (!selectedDoctor || !selectedDate) return;
-
     try {
       setLoading(true);
       const api = await initializeApi();
       const response = await api.get(
-        `${API_ENDPOINTS.APPOINTMENTS.DOCTOR}/${selectedDoctor.id}/slots`,
+        `/api/doctors/${selectedDoctor.id}/available-slots`,
         {
           params: {
             date: format(selectedDate, 'yyyy-MM-dd'),
@@ -104,21 +102,17 @@ export default function PatientNewAppointmentScreen() {
       Alert.alert('Error', 'Please fill in all required fields.');
       return;
     }
-
     try {
       setLoading(true);
       const api = await initializeApi();
-      
       const appointmentData = {
         doctorId: selectedDoctor.id,
         date: format(selectedDate, 'yyyy-MM-dd'),
         time: selectedTime,
         reason: reason.trim(),
-        status: 'pending'
+        status: 'scheduled'
       };
-
       const response = await api.post(API_ENDPOINTS.APPOINTMENTS.PATIENT, appointmentData);
-      
       Alert.alert(
         'Success',
         'Appointment booked successfully!',
@@ -159,6 +153,58 @@ export default function PatientNewAppointmentScreen() {
 
   // Use generated slots if API doesn't return any
   const displaySlots = availableSlots.length > 0 ? availableSlots : generateTimeSlots();
+
+  const handleMessageDoctor = async (doctor: Doctor) => {
+    try {
+      setLoading(true);
+      const api = await initializeApi();
+      // Get or create conversation with the doctor
+      const conversationResponse = await api.get(`/api/messages/doctor/${doctor.id}`);
+      if (conversationResponse.data?.id) {
+        // Navigate to chat screen
+        navigation.navigate(ROUTES.PATIENT.CHAT, {
+          chatId: conversationResponse.data.id,
+          patientName: `Dr. ${doctor.firstName} ${doctor.lastName}`
+        });
+      } else {
+        Alert.alert('Error', 'Failed to start conversation with doctor');
+      }
+    } catch (error: any) {
+      console.error('Error starting conversation:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to start conversation. Please try again.';
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId: string) => {
+    Alert.alert(
+      'Cancel Appointment',
+      'Are you sure you want to cancel this appointment?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const api = await initializeApi();
+              await api.patch(`/api/patient/appointments/${appointmentId}/cancel`);
+              Alert.alert('Success', 'Appointment cancelled successfully.');
+              // Refresh appointments list
+              fetchAppointments();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to cancel appointment.');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <ScrollView 
@@ -405,5 +451,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: 'italic',
     marginTop: 8,
+  },
+  messageButton: {
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  messageButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 }); 

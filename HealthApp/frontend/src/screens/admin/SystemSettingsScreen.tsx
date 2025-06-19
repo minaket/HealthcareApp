@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, ActivityIndicator, Alert } from 'react-native';
+import { getApi } from '../../api/axios.config';
+import { API_ENDPOINTS } from '../../config/constants';
+import { Card } from '../../components/common/Card';
+import { Button } from '../../components/common/Button';
 import { useTheme } from '../../theme/ThemeProvider';
-import api from '../../api/axios.config';
 
 interface SystemSetting {
   key: string;
@@ -19,12 +22,17 @@ export default function SystemSettingsScreen() {
 
   const fetchSettings = async () => {
     try {
-       const res = await api.get('/admin/system-settings');
-       setSettings(res.data);
-       setError(null);
-    } catch (err: any) {
-       setError(err.response?.data?.message || 'Failed to load system settings');
-    } finally { setIsLoading(false); }
+      setIsLoading(true);
+      const api = await getApi();
+      const res = await api.get('/admin/system-settings');
+      setSettings(res.data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching settings:', err);
+      setError('Failed to load settings');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => { fetchSettings(); }, []);
@@ -36,12 +44,16 @@ export default function SystemSettingsScreen() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-       const payload = settings.reduce((o, s) => ({ ...o, [s.key]: s.value }), {});
-       await api.post('/admin/system-settings', payload);
-       Alert.alert('Success', 'System settings updated.');
-    } catch (err: any) {
-       Alert.alert('Error', err.response?.data?.message || 'Failed to update system settings.');
-    } finally { setIsSaving(false); }
+      const api = await getApi();
+      const payload = settings.reduce((o, s) => ({ ...o, [s.key]: s.value }), {});
+      await api.post('/admin/system-settings', payload);
+      Alert.alert('Success', 'System settings updated.');
+    } catch (err) {
+      console.error('Error saving settings:', err);
+      Alert.alert('Error', 'Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) {

@@ -1,4 +1,4 @@
-const { Appointment, Doctor, Patient, User, sequelize } = require('../models');
+const { Appointment, Doctor, Patient, User, sequelize, Conversation, Message } = require('../models');
 const { Op } = require('sequelize');
 
 // Get patient appointments
@@ -166,14 +166,20 @@ const scheduleAppointment = async (req, res) => {
       status: 'scheduled'
     });
 
+    // Fetch the full appointment with patient and doctor info
     const appointmentWithDetails = await Appointment.findOne({
       where: { id: appointment.id },
-      include: [{
-        model: Doctor,
-        attributes: ['id', 'firstName', 'lastName', 'specialization']
-      }]
+      include: [
+        {
+          model: Patient,
+          include: [{ model: User, attributes: ['id', 'firstName', 'lastName', 'email'] }]
+        },
+        {
+          model: Doctor,
+          include: [{ model: User, attributes: ['id', 'firstName', 'lastName', 'email'] }]
+        }
+      ]
     });
-
     res.status(201).json({ appointment: appointmentWithDetails });
   } catch (error) {
     console.error('Schedule appointment error:', error);
@@ -220,7 +226,7 @@ const cancelAppointment = async (req, res) => {
   }
 };
 
-// Get available slots for a doctor
+// Get available slots for a doctor on a specific date
 const getAvailableSlots = async (req, res) => {
   try {
     const { doctorId } = req.params;
@@ -228,12 +234,12 @@ const getAvailableSlots = async (req, res) => {
 
     if (!date) {
       return res.status(400).json({
-        message: 'Date is required',
+        message: 'Date parameter is required',
         code: 'VALIDATION_ERROR'
       });
     }
 
-    // Get doctor's availability
+    // Get doctor record
     const doctor = await Doctor.findOne({
       where: { id: doctorId },
       include: [{
@@ -249,79 +255,46 @@ const getAvailableSlots = async (req, res) => {
       });
     }
 
-    // Get doctor's availability
-    const availability = typeof doctor.availability === 'string' 
-      ? JSON.parse(doctor.availability)
-      : doctor.availability;
-
-    if (!availability || !availability.days || !availability.startTime || !availability.endTime) {
-      console.log('Doctor availability:', doctor.availability); // Debug log
-      return res.status(400).json({
-        message: 'Doctor has not set their availability',
-        code: 'VALIDATION_ERROR'
+    // Generate time slots (9 AM to 5 PM, 30-minute intervals)
+    const slots = [];
+    const startHour = 9;
+    const endHour = 17;
+    for (let hour = startHour; hour < endHour; hour++) {
+      slots.push({
+        time: `${hour.toString().padStart(2, '0')}:00`,
+        isAvailable: true
+      });
+      slots.push({
+        time: `${hour.toString().padStart(2, '0')}:30`,
+        isAvailable: true
       });
     }
 
-    // Get the day of week for the requested date (0-6, Sunday-Saturday)
-    const requestedDate = new Date(date);
-    const dayOfWeek = requestedDate.getDay();
-    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek];
-
-    console.log('Requested date:', date); // Debug log
-    console.log('Day name:', dayName); // Debug log
-    console.log('Available days:', availability.days); // Debug log
-
-    // Check if doctor is available on this day
-    if (!availability.days.includes(dayName)) {
-      return res.json([]); // Return empty array if doctor is not available on this day
-    }
-
-    // Get existing appointments for this date
+    // Get existing appointments for this doctor on this date
+    const startOfDay = new Date(date + 'T00:00:00.000Z');
+    const endOfDay = new Date(date + 'T23:59:59.999Z');
     const existingAppointments = await Appointment.findAll({
       where: {
-        doctorId,
+        doctorId: doctor.id,
         date: {
-          [Op.between]: [
-            new Date(date + 'T00:00:00.000Z'),
-            new Date(date + 'T23:59:59.999Z')
-          ]
+          [Op.between]: [startOfDay, endOfDay]
         },
         status: 'scheduled'
-      }
+      },
+      attributes: ['date']
     });
 
-    // Generate time slots based on doctor's availability
-    const startTime = new Date(`${date}T${availability.startTime}`);
-    const endTime = new Date(`${date}T${availability.endTime}`);
-    const slotDuration = 30; // 30 minutes per slot
-    const slots = [];
+    // Mark booked slots as unavailable
+    const bookedTimes = existingAppointments.map(apt => 
+      apt.date.toTimeString().slice(0, 5)
+    );
 
-    for (let time = new Date(startTime); time < endTime; time.setMinutes(time.getMinutes() + slotDuration)) {
-      const slotTime = time.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-      });
+    const availableSlots = slots.map(slot => ({
+      ...slot,
+      isAvailable: !bookedTimes.includes(slot.time)
+    }));
 
-      // Check if this slot is already booked
-      const isBooked = existingAppointments.some(appointment => {
-        const appointmentTime = new Date(appointment.date).toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        });
-        return appointmentTime === slotTime;
-      });
-
-      if (!isBooked) {
-        slots.push({
-          time: slotTime,
-          isAvailable: true
-        });
-      }
-    }
-
-    res.json(slots);
+    res.json(availableSlots);
   } catch (error) {
     console.error('Get available slots error:', error);
     res.status(500).json({
@@ -335,7 +308,7 @@ const getAvailableSlots = async (req, res) => {
 const createAppointment = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { doctorId, date, time, reason, status = 'pending' } = req.body;
+    const { doctorId, date, time, reason, status } = req.body;
 
     // Validate required fields
     if (!doctorId || !date || !time || !reason) {
@@ -385,12 +358,12 @@ const createAppointment = async (req, res) => {
       });
     }
 
-    // Check for conflicting appointments
+    // Check for conflicting appointments (only 'scheduled' allowed)
     const conflictingAppointment = await Appointment.findOne({
       where: {
         doctorId,
         date: appointmentDateTime,
-        status: ['scheduled', 'pending']
+        status: 'scheduled'
       }
     });
 
@@ -401,56 +374,30 @@ const createAppointment = async (req, res) => {
       });
     }
 
-    // Create the appointment
+    // Create the appointment with status 'scheduled'
     const appointment = await Appointment.create({
       patientId: patient.id,
       doctorId,
       date: appointmentDateTime,
       reason,
-      status
+      status: 'scheduled'
     });
 
-    // Fetch the created appointment with details
+    // Fetch the full appointment with patient and doctor info
     const appointmentWithDetails = await Appointment.findOne({
       where: { id: appointment.id },
       include: [
         {
-          model: Doctor,
-          attributes: ['id', 'specialization'],
-          include: [{
-            model: User,
-            attributes: ['id', 'firstName', 'lastName']
-          }]
+          model: Patient,
+          include: [{ model: User, attributes: ['id', 'firstName', 'lastName', 'email'] }]
         },
         {
-          model: Patient,
-          attributes: ['id'],
-          include: [{
-            model: User,
-            attributes: ['id', 'firstName', 'lastName']
-          }]
+          model: Doctor,
+          include: [{ model: User, attributes: ['id', 'firstName', 'lastName', 'email'] }]
         }
       ]
     });
-
-    res.status(201).json({
-      message: 'Appointment created successfully',
-      appointment: {
-        id: appointmentWithDetails.id,
-        date: appointmentWithDetails.date,
-        reason: appointmentWithDetails.reason,
-        status: appointmentWithDetails.status,
-        doctor: appointmentWithDetails.Doctor ? {
-          id: appointmentWithDetails.Doctor.id,
-          name: `${appointmentWithDetails.Doctor.User.firstName} ${appointmentWithDetails.Doctor.User.lastName}`,
-          specialization: appointmentWithDetails.Doctor.specialization
-        } : null,
-        patient: appointmentWithDetails.Patient ? {
-          id: appointmentWithDetails.Patient.id,
-          name: `${appointmentWithDetails.Patient.User.firstName} ${appointmentWithDetails.Patient.User.lastName}`
-        } : null
-      }
-    });
+    res.status(201).json({ appointment: appointmentWithDetails });
   } catch (error) {
     console.error('Create appointment error:', error);
     res.status(500).json({
@@ -566,11 +513,27 @@ const getDoctorDashboardStats = async (req, res) => {
       col: 'patientId'
     });
 
-    // Get pending medical records (mock data for now)
-    const pendingReports = 3; // This would come from medical records table
+    // TODO: Implement real pendingReports and unreadMessages queries
+    // For now, set to 0 if not implemented
+    const pendingReports = 0; // Still not implemented
 
-    // Get unread messages (mock data for now)
-    const unreadMessages = 12; // This would come from messages table
+    // Count unread messages for this doctor
+    const doctorConversations = await Conversation.findAll({
+      where: { doctorId: doctor.id },
+      attributes: ['id']
+    });
+    let unreadMessages = 0;
+    if (doctorConversations.length > 0) {
+      const conversationIds = doctorConversations.map(c => c.id);
+      unreadMessages = await Message.count({
+        where: {
+          conversationId: { [Op.in]: conversationIds },
+          isRead: false,
+          // Only count messages not sent by the doctor
+          senderId: { [Op.ne]: doctor.userId }
+        }
+      });
+    }
 
     res.json({
       totalPatients,
@@ -593,23 +556,19 @@ const getDoctorDashboardStats = async (req, res) => {
 // Get doctor appointments by date
 const getDoctorAppointments = async (req, res) => {
   try {
-    const doctorId = req.user.id;
+    const doctorUserId = req.user.id;
     const { date } = req.query;
-    
     // Get doctor record
     const doctor = await Doctor.findOne({
-      where: { userId: doctorId }
+      where: { userId: doctorUserId }
     });
-
     if (!doctor) {
       return res.status(404).json({
         message: 'Doctor not found',
         code: 'NOT_FOUND'
       });
     }
-
     let whereClause = { doctorId: doctor.id };
-    
     if (date) {
       const startOfDay = new Date(date + 'T00:00:00.000Z');
       const endOfDay = new Date(date + 'T23:59:59.999Z');
@@ -617,7 +576,6 @@ const getDoctorAppointments = async (req, res) => {
         [Op.between]: [startOfDay, endOfDay]
       };
     }
-
     const appointments = await Appointment.findAll({
       where: whereClause,
       include: [{
@@ -629,7 +587,6 @@ const getDoctorAppointments = async (req, res) => {
       }],
       order: [['date', 'ASC']]
     });
-
     const formattedAppointments = appointments.map(appointment => ({
       id: appointment.id,
       startTime: appointment.date.toISOString(),
@@ -645,7 +602,6 @@ const getDoctorAppointments = async (req, res) => {
         email: appointment.Patient.User.email
       }
     }));
-
     res.json(formattedAppointments);
   } catch (error) {
     console.error('Get doctor appointments error:', error);
@@ -710,6 +666,131 @@ const updateAppointmentStatus = async (req, res) => {
   }
 };
 
+// Test endpoint to verify appointment system
+const testAppointmentSystem = async (req, res) => {
+  try {
+    // Get a sample doctor
+    const doctor = await Doctor.findOne({
+      include: [{
+        model: User,
+        attributes: ['id', 'firstName', 'lastName']
+      }]
+    });
+
+    if (!doctor) {
+      return res.status(404).json({
+        message: 'No doctors found in system',
+        code: 'NOT_FOUND'
+      });
+    }
+
+    // Get a sample patient
+    const patient = await Patient.findOne({
+      include: [{
+        model: User,
+        attributes: ['id', 'firstName', 'lastName']
+      }]
+    });
+
+    if (!patient) {
+      return res.status(404).json({
+        message: 'No patients found in system',
+        code: 'NOT_FOUND'
+      });
+    }
+
+    res.json({
+      message: 'Appointment system is working',
+      sampleDoctor: {
+        id: doctor.id,
+        name: `${doctor.User.firstName} ${doctor.User.lastName}`,
+        specialization: doctor.specialization
+      },
+      samplePatient: {
+        id: patient.id,
+        name: `${patient.User.firstName} ${patient.User.lastName}`
+      }
+    });
+  } catch (error) {
+    console.error('Test appointment system error:', error);
+    res.status(500).json({
+      message: 'Error testing appointment system',
+      code: 'TEST_ERROR'
+    });
+  }
+};
+
+// Get doctor's upcoming appointments
+const getDoctorUpcomingAppointments = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+    // Get doctor record
+    const doctor = await Doctor.findOne({ where: { userId: doctorId } });
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found', code: 'NOT_FOUND' });
+    }
+    const now = new Date();
+    const appointments = await Appointment.findAll({
+      where: {
+        doctorId: doctor.id,
+        date: { [Op.gt]: now },
+        status: 'scheduled'
+      },
+      include: [{
+        model: Patient,
+        include: [{ model: User, attributes: ['id', 'firstName', 'lastName', 'email'] }]
+      }],
+      order: [['date', 'ASC']]
+    });
+    const formattedAppointments = appointments.map(appointment => ({
+      id: appointment.id,
+      startTime: appointment.date.toISOString(),
+      endTime: new Date(appointment.date.getTime() + 30 * 60000).toISOString(),
+      type: appointment.type,
+      status: appointment.status,
+      reason: appointment.reason,
+      notes: appointment.notes,
+      patient: {
+        id: appointment.Patient.User.id,
+        firstName: appointment.Patient.User.firstName,
+        lastName: appointment.Patient.User.lastName,
+        email: appointment.Patient.User.email
+      }
+    }));
+    res.json(formattedAppointments);
+  } catch (error) {
+    console.error('Get doctor upcoming appointments error:', error);
+    res.status(500).json({ message: 'Error fetching upcoming appointments', code: 'FETCH_ERROR' });
+  }
+};
+
+// Patient cancels their own appointment
+const cancelPatientAppointment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { appointmentId } = req.params;
+    // Find patient record
+    const patient = await Patient.findOne({ where: { userId } });
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient record not found', code: 'NOT_FOUND' });
+    }
+    // Find appointment
+    const appointment = await Appointment.findOne({ where: { id: appointmentId, patientId: patient.id } });
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found', code: 'NOT_FOUND' });
+    }
+    // Only allow cancelling future scheduled appointments
+    if (appointment.status !== 'scheduled' || appointment.date <= new Date()) {
+      return res.status(400).json({ message: 'Only future scheduled appointments can be cancelled', code: 'CANNOT_CANCEL' });
+    }
+    await appointment.update({ status: 'cancelled' });
+    res.json({ message: 'Appointment cancelled successfully', appointment });
+  } catch (error) {
+    console.error('Cancel patient appointment error:', error);
+    res.status(500).json({ message: 'Error cancelling appointment', code: 'CANCEL_ERROR' });
+  }
+};
+
 module.exports = {
   getPatientAppointments,
   getUpcomingAppointments,
@@ -721,4 +802,7 @@ module.exports = {
   getDoctorDashboardStats,
   getDoctorAppointments,
   updateAppointmentStatus,
+  testAppointmentSystem,
+  getDoctorUpcomingAppointments,
+  cancelPatientAppointment,
 }; 

@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppSelector } from '../../hooks';
 import { PatientStackParamList } from '../../types/navigation';
@@ -127,6 +127,13 @@ export default function PatientDashboardScreen() {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // Refresh dashboard when coming back to this screen (e.g., after cancelling an appointment)
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchDashboardData();
+    }, [])
+  );
 
   const onRefresh = () => {
     setIsRefreshing(true);
@@ -530,6 +537,16 @@ export default function PatientDashboardScreen() {
             <View style={styles.actionButtonContent}>
               <Ionicons name="chatbubble" size={32} color="#FFF" style={styles.actionIcon} />
               <Text style={[styles.actionText, { color: '#FFF' }]}>Messages</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: COLORS.messages }]}
+            onPress={() => navigation.navigate(ROUTES.PATIENT.MESSAGE_DOCTORS)}
+          >
+            <View style={styles.actionButtonContent}>
+              <Ionicons name="medical" size={32} color="#FFF" style={styles.actionIcon} />
+              <Text style={[styles.actionText, { color: '#FFF' }]}>Message Doctors</Text>
             </View>
           </TouchableOpacity>
         </View>

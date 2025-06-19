@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Appointment, Patient } from '../../types';
-import initializeApi from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
 import { format, parseISO, isBefore, addDays } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { ROUTES } from '../../config/constants';
 
 type AppointmentWithPatient = Appointment & {
   patient: Patient;
@@ -22,6 +24,7 @@ type AppointmentWithPatient = Appointment & {
 export default function AppointmentManagementScreen() {
   const { isDark, getThemeStyles } = useTheme();
   const theme = getThemeStyles(isDark);
+  const navigation = useNavigation();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -31,7 +34,7 @@ export default function AppointmentManagementScreen() {
 
   const fetchAppointments = async () => {
     try {
-      const client = await initializeApi();
+      const client = await getApi();
       const response = await client.get('/api/doctor/appointments', {
         params: {
           date: format(selectedDate, 'yyyy-MM-dd'),
@@ -59,7 +62,7 @@ export default function AppointmentManagementScreen() {
 
   const handleUpdateStatus = async (appointmentId: string, status: string) => {
     try {
-      const client = await initializeApi();
+      const client = await getApi();
       await client.patch(`/api/appointments/${appointmentId}`, { status });
       fetchAppointments();
       Alert.alert('Success', 'Appointment status updated successfully');
@@ -71,6 +74,28 @@ export default function AppointmentManagementScreen() {
   const handleViewPatient = (_patientId: string) => {
     // TODO: Implement navigation to patient details
     // For now, this is a placeholder for future implementation
+  };
+
+  const handleMessagePatient = async (patientId: string, patientName: string) => {
+    try {
+      const client = await getApi();
+      
+      // Get or create conversation with the patient
+      const conversationResponse = await client.get(`/api/messages/patient/${patientId}`);
+      
+      if (conversationResponse.data?.id) {
+        // Navigate to chat screen
+        navigation.navigate(ROUTES.DOCTOR.CHAT, {
+          chatId: conversationResponse.data.id,
+          patientName: patientName
+        });
+      } else {
+        Alert.alert('Error', 'Failed to start conversation with patient');
+      }
+    } catch (error: any) {
+      console.error('Error starting conversation:', error);
+      Alert.alert('Error', 'Failed to start conversation with patient');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -327,6 +352,16 @@ export default function AppointmentManagementScreen() {
 
               {!isPast && appointment.status === 'scheduled' && (
                 <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+                    onPress={() => handleMessagePatient(
+                      appointment.patient.id, 
+                      `${appointment.patient.firstName} ${appointment.patient.lastName}`
+                    )}
+                  >
+                    <Ionicons name="chatbubble" size={20} color="white" />
+                    <Text style={styles.actionButtonText}>Message</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: theme.colors.success }]}
                     onPress={() => handleUpdateStatus(appointment.id, 'completed')}

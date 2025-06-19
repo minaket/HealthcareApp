@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../hooks/useAuth';
@@ -15,6 +16,7 @@ import { format } from 'date-fns';
 import { ROUTES } from '../../config/constants';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { PatientStackParamList } from '../../types/navigation';
+import initializeApi from '../../api/axios.config';
 
 type Props = NativeStackScreenProps<PatientStackParamList, typeof ROUTES.PATIENT.APPOINTMENTS>;
 
@@ -22,7 +24,7 @@ const AppointmentsScreen: React.FC<Props> = ({ navigation }) => {
   const { isDark, getThemeStyles } = useTheme();
   const theme = getThemeStyles(isDark);
   const { user } = useAuth();
-  const { appointments, loading, error, refetch } = useAppointments();
+  const { appointments, isLoading, error, refetch } = useAppointments();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -31,35 +33,67 @@ const AppointmentsScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const renderAppointmentItem = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={[styles.appointmentCard, { backgroundColor: theme.colors.card }]}
-      onPress={() => navigation.navigate(ROUTES.PATIENT.APPOINTMENT_DETAILS, { appointmentId: item.id })}
-    >
-      <View style={styles.appointmentHeader}>
-        <Text style={[styles.doctorName, { color: theme.colors.text }]}>
-          Dr. {item.doctor.firstName} {item.doctor.lastName}
-        </Text>
-        <Text style={[styles.status, { color: getStatusColor(item.status, theme) }]}>
-          {item.status}
-        </Text>
-      </View>
-      
-      <View style={styles.appointmentDetails}>
-        <Text style={[styles.date, { color: theme.colors.text }]}>
-          {format(new Date(item.scheduledAt), 'MMM dd, yyyy')}
-        </Text>
-        <Text style={[styles.time, { color: theme.colors.text }]}>
-          {format(new Date(item.scheduledAt), 'hh:mm a')}
-        </Text>
-        <Text style={[styles.type, { color: theme.colors.text }]}>
-          {item.consultationType}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const handleCancelAppointment = async (appointmentId: string) => {
+    Alert.alert(
+      'Cancel Appointment',
+      'Are you sure you want to cancel this appointment?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const api = await initializeApi();
+              await api.patch(`/api/patient/appointments/${appointmentId}/cancel`);
+              Alert.alert('Success', 'Appointment cancelled successfully.');
+              refetch();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to cancel appointment.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
-  if (loading && !refreshing) {
+  const renderAppointmentItem = ({ item }: { item: any }) => {
+    const isFutureScheduled = item.status === 'scheduled' && new Date(item.scheduledAt) > new Date();
+    return (
+      <TouchableOpacity
+        style={[styles.appointmentCard, { backgroundColor: theme.colors.card }]}
+        onPress={() => navigation.navigate(ROUTES.PATIENT.APPOINTMENT_DETAILS, { appointmentId: item.id })}
+      >
+        <View style={styles.appointmentHeader}>
+          <Text style={[styles.doctorName, { color: theme.colors.text }]}>
+            Dr. {item.doctor.firstName} {item.doctor.lastName}
+          </Text>
+          <Text style={[styles.status, { color: getStatusColor(item.status, theme) }]}>
+            {item.status}
+          </Text>
+        </View>
+        
+        <View style={styles.appointmentDetails}>
+          <Text style={[styles.date, { color: theme.colors.text }]}>
+            {format(new Date(item.scheduledAt), 'MMM dd, yyyy')}
+          </Text>
+          <Text style={[styles.time, { color: theme.colors.text }]}>
+            {format(new Date(item.scheduledAt), 'hh:mm a')}
+          </Text>
+          <Text style={[styles.type, { color: theme.colors.text }]}>
+            {item.consultationType}
+          </Text>
+        </View>
+        {isFutureScheduled && (
+          <TouchableOpacity style={styles.cancelButton} onPress={() => handleCancelAppointment(item.id)}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  if (isLoading && !refreshing) {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -213,6 +247,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  cancelButton: {
+    marginTop: 10,
+    backgroundColor: '#ff4d4f',
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
 });
 

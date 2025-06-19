@@ -16,7 +16,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppSelector } from '../../hooks';
 import { RootState } from '../../store';
 import { Prescription, Patient, Medication } from '../../types';
-import initializeApi from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
 import { ROUTES } from '../../config/constants';
 import { format, parseISO } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,7 +59,7 @@ export default function PrescriptionManagementScreen() {
 
   const fetchPatientData = async () => {
     try {
-      const client = await initializeApi();
+      const client = await getApi();
       const [patientRes, prescriptionsRes] = await Promise.all([
         client.get(`/patients/${patientId}`),
         client.get(`/patients/${patientId}/prescriptions`),
@@ -114,7 +114,7 @@ export default function PrescriptionManagementScreen() {
       return;
     }
     try {
-      const client = await initializeApi();
+      const client = await getApi();
       const response = await client.post(`/patients/${patientId}/prescriptions`, {
         ...newPrescription,
         doctorId: user?.id,

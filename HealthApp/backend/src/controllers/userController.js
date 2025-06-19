@@ -3,12 +3,19 @@ const { User, Doctor } = require('../models');
 // Get list of doctors
 const getDoctors = async (req, res) => {
   try {
+    console.log('Fetching doctors...');
+    
     const doctors = await Doctor.findAll({
       include: [{
         model: User,
         attributes: ['id', 'firstName', 'lastName', 'email']
       }],
       attributes: ['id', 'specialization', 'licenseNumber', 'yearsOfExperience', 'availability']
+    });
+
+    console.log('Found doctors:', doctors.length);
+    doctors.forEach(doc => {
+      console.log(`- ${doc.User.firstName} ${doc.User.lastName} (${doc.User.email})`);
     });
 
     const formattedDoctors = doctors.map(doctor => ({
@@ -22,6 +29,8 @@ const getDoctors = async (req, res) => {
       yearsOfExperience: doctor.yearsOfExperience,
       availability: doctor.availability
     }));
+
+    console.log('Returning formatted doctors:', formattedDoctors.length);
 
     res.json({
       data: formattedDoctors,

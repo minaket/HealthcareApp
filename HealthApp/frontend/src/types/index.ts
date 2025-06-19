@@ -129,6 +129,16 @@ export interface Conversation {
   updatedAt: string;
 }
 
+export interface Chat {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  lastMessage?: Message;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Emergency Contact
 export interface EmergencyContact {
   name: string;

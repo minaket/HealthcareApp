@@ -95,10 +95,12 @@ export const ROUTES = {
     APPOINTMENTS: 'PatientAppointments',
     MEDICAL_RECORDS: 'PatientMedicalRecords',
     MESSAGES: 'PatientMessages',
+    MESSAGE_DOCTORS: 'MessageDoctors',
     APPOINTMENT_DETAILS: 'PatientAppointmentDetails',
     NEW_APPOINTMENT: 'PatientNewAppointment',
     MEDICAL_RECORD_DETAILS: 'PatientMedicalRecordDetails',
     CHAT: 'PatientChat',
+    UPLOAD_MEDICAL_RECORD: 'UploadMedicalRecord',
   },
   DOCTOR: {
     DASHBOARD: 'DoctorDashboard',
@@ -113,6 +115,7 @@ export const ROUTES = {
     MEDICAL_RECORD_MANAGEMENT: 'DoctorMedicalRecordManagement',
     APPOINTMENT_MANAGEMENT: 'DoctorAppointmentManagement',
     CREATE_MEDICAL_RECORD: 'DoctorCreateMedicalRecord',
+    CHAT: 'DoctorChat',
   },
   ADMIN: {
     DASHBOARD: 'AdminDashboard',
@@ -154,6 +157,8 @@ export const API_ENDPOINTS = {
   MESSAGES: {
     BASE: '/api/messages',
     CONVERSATIONS: '/api/messages/conversations',
+    DOCTOR_CONVERSATION: '/api/messages/doctor',
+    PATIENT_CONVERSATION: '/api/messages/patient',
   },
   PATIENT: {
     HEALTH_SUMMARY: '/api/patient/health-summary',

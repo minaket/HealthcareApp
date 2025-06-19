@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '../../theme/ThemeProvider';
-import api from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
 import { Ionicons } from '@expo/vector-icons';
 
 interface Doctor {
@@ -22,43 +22,54 @@ export default function DoctorManagementScreen() {
 
   const fetchDoctors = async () => {
     try {
-       const res = await api.get('/admin/doctors');
-       setDoctors(res.data);
-       setError(null);
-    } catch (err: any) {
-       setError(err.response?.data?.message || 'Failed to load doctors');
-    } finally { setIsLoading(false); }
+      setIsLoading(true);
+      const api = await getApi();
+      const res = await api.get('/admin/doctors');
+      setDoctors(res.data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching doctors:', err);
+      setError('Failed to load doctors');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => { fetchDoctors(); }, []);
 
   const handleBlockDoctor = async (doctor: Doctor) => {
     try {
-       await api.post(`/admin/doctors/${doctor.id}/block`);
-       fetchDoctors();
-       Alert.alert('Success', `Doctor ${doctor.name} (${doctor.email}) has been blocked.`);
-    } catch (err: any) {
-       Alert.alert('Error', err.response?.data?.message || 'Failed to block doctor.');
+      const api = await getApi();
+      await api.post(`/admin/doctors/${doctor.id}/block`);
+      fetchDoctors();
+      Alert.alert('Success', `Doctor ${doctor.name} (${doctor.email}) has been blocked.`);
+    } catch (err) {
+      console.error('Error blocking doctor:', err);
+      Alert.alert('Error', 'Failed to block doctor');
     }
   };
 
   const handleUnblockDoctor = async (doctor: Doctor) => {
     try {
-       await api.post(`/admin/doctors/${doctor.id}/unblock`);
-       fetchDoctors();
-       Alert.alert('Success', `Doctor ${doctor.name} (${doctor.email}) has been unblocked.`);
-    } catch (err: any) {
-       Alert.alert('Error', err.response?.data?.message || 'Failed to unblock doctor.');
+      const api = await getApi();
+      await api.post(`/admin/doctors/${doctor.id}/unblock`);
+      fetchDoctors();
+      Alert.alert('Success', `Doctor ${doctor.name} (${doctor.email}) has been unblocked.`);
+    } catch (err) {
+      console.error('Error unblocking doctor:', err);
+      Alert.alert('Error', 'Failed to unblock doctor');
     }
   };
 
   const handleDeleteDoctor = async (doctor: Doctor) => {
     try {
-       await api.delete(`/admin/doctors/${doctor.id}`);
-       fetchDoctors();
-       Alert.alert('Success', `Doctor ${doctor.name} (${doctor.email}) has been deleted.`);
-    } catch (err: any) {
-       Alert.alert('Error', err.response?.data?.message || 'Failed to delete doctor.');
+      const api = await getApi();
+      await api.delete(`/admin/doctors/${doctor.id}`);
+      fetchDoctors();
+      Alert.alert('Success', `Doctor ${doctor.name} (${doctor.email}) has been deleted.`);
+    } catch (err) {
+      console.error('Error deleting doctor:', err);
+      Alert.alert('Error', 'Failed to delete doctor');
     }
   };
 

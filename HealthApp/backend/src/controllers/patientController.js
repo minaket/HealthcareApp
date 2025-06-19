@@ -493,6 +493,20 @@ const uploadMedicalRecord = async (req, res) => {
         });
       }
 
+      // Find the most recent doctor for this patient (from latest scheduled appointment)
+      const latestAppointment = await Appointment.findOne({
+        where: { patientId: patient.id, status: 'scheduled' },
+        order: [['date', 'DESC']],
+        include: [{ model: Doctor, attributes: ['id'] }]
+      });
+      const doctorId = latestAppointment?.doctorId;
+      if (!doctorId) {
+        return res.status(400).json({
+          message: 'No assigned doctor found for this patient. Please book an appointment first.',
+          code: 'NO_DOCTOR_ASSIGNED'
+        });
+      }
+
       // Prepare attachments data
       const attachments = files.map(file => ({
         type: file.mimetype.startsWith('image/') ? 'image' : 'document',
@@ -501,25 +515,32 @@ const uploadMedicalRecord = async (req, res) => {
         uploadedAt: new Date()
       }));
 
-      // Create medical record with attachments
-      const medicalRecord = await MedicalRecord.create({
-        patientId: patient.id,
+      // Compose recordData as a summary object
+      const recordData = {
         title: title.trim(),
         description: description ? description.trim() : null,
+        attachments
+      };
+
+      // Create medical record with all required fields
+      const medicalRecord = await MedicalRecord.create({
+        patientId: patient.id,
+        doctorId,
         recordType: recordType.trim(),
-        date: new Date(date),
+        recordData: JSON.stringify(recordData),
+        recordDate: new Date(date),
         status: 'active',
-        attachments: JSON.stringify(attachments)
+        accessLevel: 'private'
       });
 
       res.status(201).json({
         message: 'Medical record uploaded successfully',
         record: {
           id: medicalRecord.id,
-          title: medicalRecord.title,
-          description: medicalRecord.description,
+          title: recordData.title,
+          description: recordData.description,
           recordType: medicalRecord.recordType,
-          date: medicalRecord.date,
+          date: medicalRecord.recordDate,
           status: medicalRecord.status,
           attachments: attachments
         }

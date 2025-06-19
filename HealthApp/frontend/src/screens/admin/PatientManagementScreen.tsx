@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '../../theme/ThemeProvider';
-import api from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
 import { Ionicons } from '@expo/vector-icons';
 
 interface Patient {
@@ -22,43 +22,54 @@ export default function PatientManagementScreen() {
 
   const fetchPatients = async () => {
     try {
-       const res = await api.get('/admin/patients');
-       setPatients(res.data);
-       setError(null);
-    } catch (err: any) {
-       setError(err.response?.data?.message || 'Failed to load patients');
-    } finally { setIsLoading(false); }
+      setIsLoading(true);
+      const api = await getApi();
+      const res = await api.get('/admin/patients');
+      setPatients(res.data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching patients:', err);
+      setError('Failed to load patients');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => { fetchPatients(); }, []);
 
   const handleBlockPatient = async (patient: Patient) => {
     try {
-       await api.post(`/admin/patients/${patient.id}/block`);
-       fetchPatients();
-       Alert.alert('Success', `Patient ${patient.name} (${patient.email}) has been blocked.`);
-    } catch (err: any) {
-       Alert.alert('Error', err.response?.data?.message || 'Failed to block patient.');
+      const api = await getApi();
+      await api.post(`/admin/patients/${patient.id}/block`);
+      fetchPatients();
+      Alert.alert('Success', `Patient ${patient.name} (${patient.email}) has been blocked.`);
+    } catch (err) {
+      console.error('Error blocking patient:', err);
+      Alert.alert('Error', 'Failed to block patient');
     }
   };
 
   const handleUnblockPatient = async (patient: Patient) => {
     try {
-       await api.post(`/admin/patients/${patient.id}/unblock`);
-       fetchPatients();
-       Alert.alert('Success', `Patient ${patient.name} (${patient.email}) has been unblocked.`);
-    } catch (err: any) {
-       Alert.alert('Error', err.response?.data?.message || 'Failed to unblock patient.');
+      const api = await getApi();
+      await api.post(`/admin/patients/${patient.id}/unblock`);
+      fetchPatients();
+      Alert.alert('Success', `Patient ${patient.name} (${patient.email}) has been unblocked.`);
+    } catch (err) {
+      console.error('Error unblocking patient:', err);
+      Alert.alert('Error', 'Failed to unblock patient');
     }
   };
 
   const handleDeletePatient = async (patient: Patient) => {
     try {
-       await api.delete(`/admin/patients/${patient.id}`);
-       fetchPatients();
-       Alert.alert('Success', `Patient ${patient.name} (${patient.email}) has been deleted.`);
-    } catch (err: any) {
-       Alert.alert('Error', err.response?.data?.message || 'Failed to delete patient.');
+      const api = await getApi();
+      await api.delete(`/admin/patients/${patient.id}`);
+      fetchPatients();
+      Alert.alert('Success', `Patient ${patient.name} (${patient.email}) has been deleted.`);
+    } catch (err) {
+      console.error('Error deleting patient:', err);
+      Alert.alert('Error', 'Failed to delete patient');
     }
   };
 

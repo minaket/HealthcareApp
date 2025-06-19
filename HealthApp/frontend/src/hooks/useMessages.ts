@@ -17,8 +17,6 @@ interface Participant {
   firstName: string;
   lastName: string;
   role: 'patient' | 'doctor' | 'admin';
-  avatar?: string;
-  name?: string;
 }
 
 interface Conversation {
@@ -67,15 +65,26 @@ export const useMessages = () => {
     try {
       const api = await getApi();
       await api.put(`${API_ENDPOINTS.MESSAGES.BASE}/conversations/${conversationId}/read`);
-      setConversations(prev =>
-        prev.map(conv =>
-          conv.id === conversationId
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.id === conversationId 
             ? { ...conv, unreadCount: 0 }
             : conv
         )
       );
     } catch (err) {
       console.error('Failed to mark conversation as read:', err);
+    }
+  }, []);
+
+  const fetchNewMessages = useCallback(async (conversationId: string) => {
+    try {
+      const api = await getApi();
+      const response = await api.get(`/api/messages/${conversationId}`);
+      return response.data;
+    } catch (err) {
+      console.error('Failed to fetch new messages:', err);
+      throw err instanceof Error ? err : new Error('Failed to fetch new messages');
     }
   }, []);
 
@@ -106,5 +115,6 @@ export const useMessages = () => {
     refetch: fetchConversations,
     sendMessage,
     markAsRead,
+    fetchNewMessages,
   };
 }; 

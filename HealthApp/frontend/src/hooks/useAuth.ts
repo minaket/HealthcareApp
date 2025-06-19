@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../api/axios.config';
+import { getApi } from '../api/axios.config';
 import { API_ENDPOINTS, STORAGE_KEYS } from '../config/constants';
 
 export interface User {
@@ -80,7 +80,8 @@ export const useAuth = () => {
   const login = useCallback(async (credentials: LoginCredentials) => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
-      
+
+      const api = await getApi();
       console.log('Attempting login to:', `${api.defaults.baseURL}${API_ENDPOINTS.AUTH.LOGIN}`);
       const response = await api.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
       console.log('Login response:', response.data);
@@ -98,38 +99,42 @@ export const useAuth = () => {
         AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken || ''),
       ]);
 
-      setState({
+      setState(prev => ({
+        ...prev,
         user: { ...user, token },
         loading: false,
         error: null,
-      });
+      }));
 
-      return user;
+      return response.data;
     } catch (error: any) {
-      console.error('Login error details:', error.response?.data);
+      console.error('Login error:', error);
       
       let errorMessage = 'Login failed';
-      if (error.response?.data?.errors) {
-        errorMessage = formatValidationErrors(error.response.data.errors);
-      } else if (error.response?.data?.message) {
+      if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+      } else if (error.response?.data?.errors) {
+        errorMessage = formatValidationErrors(error.response.data.errors);
       } else if (error.message) {
         errorMessage = error.message;
       }
 
-      const authError = new Error(errorMessage);
-      setState(prev => ({ ...prev, error: authError, loading: false }));
-      throw authError;
+      setState(prev => ({
+        ...prev,
+        error: new Error(errorMessage),
+        loading: false,
+      }));
+
+      throw new Error(errorMessage);
     }
   }, []);
 
   const register = useCallback(async (data: RegisterData) => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
-      
-      console.log('Attempting registration to:', `${api.defaults.baseURL}${API_ENDPOINTS.AUTH.REGISTER}`);
+
+      const api = await getApi();
       const response = await api.post(API_ENDPOINTS.AUTH.REGISTER, data);
-      console.log('Registration response:', response.data);
 
       const { user, token, refreshToken } = response.data;
 
@@ -144,63 +149,56 @@ export const useAuth = () => {
         AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken || ''),
       ]);
 
-      setState({
+      setState(prev => ({
+        ...prev,
         user: { ...user, token },
         loading: false,
         error: null,
-      });
+      }));
 
-      return user;
+      return response.data;
     } catch (error: any) {
-      console.error('Registration error details:', error.response?.data);
+      console.error('Registration error:', error);
       
       let errorMessage = 'Registration failed';
-      if (error.response?.data?.errors) {
-        errorMessage = formatValidationErrors(error.response.data.errors);
-      } else if (error.response?.data?.message) {
+      if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+      } else if (error.response?.data?.errors) {
+        errorMessage = formatValidationErrors(error.response.data.errors);
       } else if (error.message) {
         errorMessage = error.message;
       }
 
-      const authError = new Error(errorMessage);
-      setState(prev => ({ ...prev, error: authError, loading: false }));
-      throw authError;
+      setState(prev => ({
+        ...prev,
+        error: new Error(errorMessage),
+        loading: false,
+      }));
+
+      throw new Error(errorMessage);
     }
   }, []);
 
   const logout = useCallback(async () => {
     try {
-      setState(prev => ({ ...prev, loading: true }));
-      
-      // Call logout endpoint to invalidate token
+      const api = await getApi();
       await api.post(API_ENDPOINTS.AUTH.LOGOUT);
-
-      // Clear stored data
-      await AsyncStorage.multiRemove([
-        STORAGE_KEYS.USER_DATA,
-        STORAGE_KEYS.AUTH_TOKEN,
-        STORAGE_KEYS.REFRESH_TOKEN,
-      ]);
-
-      setState({
-        user: null,
-        loading: false,
-        error: null,
-      });
     } catch (error) {
       console.error('Logout error:', error);
-      // Still clear local data even if server request fails
-      await AsyncStorage.multiRemove([
-        STORAGE_KEYS.USER_DATA,
-        STORAGE_KEYS.AUTH_TOKEN,
-        STORAGE_KEYS.REFRESH_TOKEN,
+    } finally {
+      // Clear storage regardless of logout success
+      await Promise.all([
+        AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA),
+        AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN),
+        AsyncStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN),
       ]);
-      setState({
+
+      setState(prev => ({
+        ...prev,
         user: null,
         loading: false,
         error: null,
-      });
+      }));
     }
   }, []);
 
@@ -231,11 +229,58 @@ export const useAuth = () => {
     }
   }, []);
 
+  const forgotPassword = useCallback(async (email: string) => {
+    try {
+      const api = await getApi();
+      const response = await api.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+      return response.data;
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      
+      let errorMessage = 'Failed to send reset email';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.errors) {
+        errorMessage = formatValidationErrors(error.response.data.errors);
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      throw new Error(errorMessage);
+    }
+  }, []);
+
+  const resetPassword = useCallback(async (token: string, password: string) => {
+    try {
+      const api = await getApi();
+      const response = await api.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
+        token,
+        password,
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      
+      let errorMessage = 'Failed to reset password';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.errors) {
+        errorMessage = formatValidationErrors(error.response.data.errors);
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      throw new Error(errorMessage);
+    }
+  }, []);
+
   return {
     ...state,
     login,
     register,
     logout,
     updateProfile,
+    forgotPassword,
+    resetPassword,
   };
 }; 

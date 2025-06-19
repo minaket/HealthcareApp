@@ -14,7 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { DoctorStackParamList } from '../../types/navigation';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Appointment, User } from '../../types';
-import initializeApi from '../../api/axios.config';
+import { getApi } from '../../api/axios.config';
 import { ROUTES } from '../../config/constants';
 import { format, parseISO, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -38,11 +38,11 @@ export default function DoctorAppointmentsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<AppointmentWithPatient[]>([]);
 
   const fetchAppointments = async () => {
     try {
-      const client = await initializeApi();
-      const response = await client.get('/api/doctor/appointments', {
+      const response = await getApi().get('/api/doctor/appointments', {
         params: {
           date: format(selectedDate, 'yyyy-MM-dd'),
         },
@@ -59,8 +59,18 @@ export default function DoctorAppointmentsScreen() {
     }
   };
 
+  const fetchUpcomingAppointments = async () => {
+    try {
+      const response = await getApi().get('/api/doctor/appointments/upcoming');
+      setUpcomingAppointments(response.data);
+    } catch (err) {
+      setUpcomingAppointments([]);
+    }
+  };
+
   useEffect(() => {
     fetchAppointments();
+    fetchUpcomingAppointments();
   }, [selectedDate]);
 
   const onRefresh = () => {
@@ -70,8 +80,7 @@ export default function DoctorAppointmentsScreen() {
 
   const handleStatusUpdate = async (appointmentId: string, newStatus: Appointment['status']) => {
     try {
-      const client = await initializeApi();
-      await client.patch(`/api/appointments/${appointmentId}`, { status: newStatus });
+      await getApi().patch(`/api/appointments/${appointmentId}`, { status: newStatus });
       await fetchAppointments();
       Alert.alert('Success', 'Appointment status updated successfully');
     } catch (err: any) {
@@ -245,6 +254,11 @@ export default function DoctorAppointmentsScreen() {
       color: theme.colors.text.secondary,
       fontSize: 16,
     },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.colors.text.default,
+    },
   });
 
   if (isLoading) {
@@ -293,6 +307,8 @@ export default function DoctorAppointmentsScreen() {
         })}
       </ScrollView>
 
+      {/* Today's Appointments */}
+      <Text style={[styles.sectionTitle, { marginBottom: 8 }]}>Today's Appointments</Text>
       {appointments.length === 0 ? (
         <View style={styles.emptyState}>
           <Icon name="calendar-blank" size={64} color={theme.colors.text.secondary} style={styles.emptyIcon} />
@@ -300,6 +316,105 @@ export default function DoctorAppointmentsScreen() {
         </View>
       ) : (
         appointments.map((appointment) => (
+          <View key={appointment.id} style={styles.appointmentCard}>
+            <View style={styles.appointmentHeader}>
+              <Text style={styles.appointmentTime}>
+                {format(parseISO(appointment.startTime), 'h:mm a')} - {format(
+                  parseISO(appointment.endTime),
+                  'h:mm a'
+                )}
+              </Text>
+              <View
+                style={[
+                  styles.appointmentStatus,
+                  { backgroundColor: `${getStatusColor(appointment.status)}20` },
+                ]}
+              >
+                <Icon 
+                  name={getStatusIcon(appointment.status)} 
+                  size={16} 
+                  color={getStatusColor(appointment.status)} 
+                />
+                <Text style={[styles.statusText, { color: getStatusColor(appointment.status) }]}>
+                  {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.patientInfo}>
+              <Text style={styles.patientName}>
+                {appointment.patient.firstName} {appointment.patient.lastName}
+              </Text>
+              <Text style={styles.appointmentType}>
+                {appointment.type
+                  .split('_')
+                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(' ')}
+              </Text>
+              {appointment.reason && (
+                <Text style={styles.appointmentReason}>{appointment.reason}</Text>
+              )}
+            </View>
+
+            <View style={styles.actionButtons}>
+              {appointment.status === 'scheduled' && (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: `${theme.colors.success}20` }
+                    ]}
+                    onPress={() => handleStatusUpdate(appointment.id, 'completed')}
+                  >
+                    <Icon name="check" size={16} color={theme.colors.success} />
+                    <Text style={[styles.actionButtonText, { color: theme.colors.success }]}>
+                      Complete
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: `${theme.colors.error}20` }
+                    ]}
+                    onPress={() => handleStatusUpdate(appointment.id, 'cancelled')}
+                  >
+                    <Icon name="close" size={16} color={theme.colors.error} />
+                    <Text style={[styles.actionButtonText, { color: theme.colors.error }]}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: `${theme.colors.primary}20` }
+                ]}
+                onPress={() =>
+                  navigation.navigate(ROUTES.DOCTOR.APPOINTMENT_DETAILS, {
+                    appointmentId: appointment.id,
+                  })
+                }
+              >
+                <Icon name="eye" size={16} color={theme.colors.primary} />
+                <Text style={[styles.actionButtonText, { color: theme.colors.primary }]}>
+                  View Details
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))
+      )}
+
+      {/* Upcoming Appointments */}
+      <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 8 }]}>Upcoming Appointments</Text>
+      {upcomingAppointments.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Icon name="calendar-clock" size={64} color={theme.colors.text.secondary} style={styles.emptyIcon} />
+          <Text style={styles.emptyText}>No upcoming appointments</Text>
+        </View>
+      ) : (
+        upcomingAppointments.map((appointment) => (
           <View key={appointment.id} style={styles.appointmentCard}>
             <View style={styles.appointmentHeader}>
               <Text style={styles.appointmentTime}>

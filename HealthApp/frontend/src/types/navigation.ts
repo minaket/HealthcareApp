@@ -14,17 +14,18 @@ export type AuthStackParamList = {
 // Patient Stack
 export type PatientStackParamList = {
   PatientTabs: undefined;
-  PatientHome: undefined;
+  [ROUTES.PATIENT.DASHBOARD]: undefined;
   [ROUTES.PATIENT.PROFILE]: undefined;
   [ROUTES.PATIENT.EDIT_PROFILE]: undefined;
-  [ROUTES.PATIENT.NEW_APPOINTMENT]: undefined;
   [ROUTES.PATIENT.APPOINTMENTS]: undefined;
   [ROUTES.PATIENT.MEDICAL_RECORDS]: undefined;
   [ROUTES.PATIENT.MESSAGES]: undefined;
+  [ROUTES.PATIENT.MESSAGE_DOCTORS]: undefined;
   [ROUTES.PATIENT.APPOINTMENT_DETAILS]: { appointmentId: string };
+  [ROUTES.PATIENT.NEW_APPOINTMENT]: undefined;
   [ROUTES.PATIENT.MEDICAL_RECORD_DETAILS]: { recordId: string };
-  [ROUTES.PATIENT.CHAT]: { recipientId: string };
-  UploadMedicalRecord: undefined;
+  [ROUTES.PATIENT.CHAT]: { chatId: string; patientName: string };
+  [ROUTES.PATIENT.UPLOAD_MEDICAL_RECORD]: undefined;
 };
 
 // Doctor Stack
@@ -41,7 +42,7 @@ export type DoctorStackParamList = {
   [ROUTES.DOCTOR.MEDICAL_RECORD_MANAGEMENT]: { patientId: string };
   [ROUTES.DOCTOR.APPOINTMENT_MANAGEMENT]: undefined;
   [ROUTES.DOCTOR.CREATE_MEDICAL_RECORD]: undefined;
-  Chat: { chatId: string; patientName: string };
+  [ROUTES.DOCTOR.CHAT]: { chatId: string; patientName: string };
 };
 
 // Admin Stack
